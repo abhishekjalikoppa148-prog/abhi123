@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { User as UserIcon, Mail, Lock, Bell, LogOut, Trash2, CheckCircle2, Shield } from 'lucide-react';
-import { getCurrentUser, setCurrentUser, logoutUser } from '@/lib/store';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { User } from '@/lib/types';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { user: authUser, logout, refreshUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -17,41 +18,34 @@ export default function ProfilePage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
-    const curr = getCurrentUser();
-    if (!curr) {
-      router.push('/login');
+    if (!authUser) {
+      // router.push('/login'); // Handled by auth provider or component logic later
       return;
     }
-    setUser(curr);
-    setName(curr.name);
-    setEmail(curr.email);
-    setNotifications(curr.notificationsEnabled !== false);
-  }, [router]);
+    setUser(authUser);
+    setName(authUser.name);
+    setEmail(authUser.email);
+    setNotifications(authUser.notificationsEnabled !== false);
+  }, [authUser, router]);
 
-  const handleUpdateProfile = (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const updated: User = {
-      ...user,
-      name,
-      email,
-      notificationsEnabled: notifications
-    };
-    setCurrentUser(updated);
-    setUser(updated);
+    
+    // TODO: Implement PUT /api/auth/me to update profile in database
+    
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
-  const handleLogout = () => {
-    logoutUser();
-    router.push('/');
+  const handleLogout = async () => {
+    await logout();
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     if (confirm('Are you sure you want to delete your account? All created birthday websites will be removed.')) {
-      logoutUser();
-      router.push('/');
+      // TODO: Implement DELETE /api/auth/me to delete account
+      await logout();
     }
   };
 

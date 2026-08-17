@@ -12,9 +12,10 @@ import {
   BirthdayWebsite, PhotoMemory, TemplateId, PlanId, Customizations 
 } from '@/lib/types';
 import { 
-  getCurrentUser, publishWebsiteDirectly, getWebsiteByIdOrSlug, 
+  publishWebsiteDirectly, getWebsiteByIdOrSlug, 
   getDailyUsageInfo, DailyUsageInfo, DAILY_FREE_LIMIT, saveWebsite 
 } from '@/lib/store';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { TEMPLATES, DEFAULT_MUSIC_TRACKS, PLANS } from '@/lib/sample-data';
 import { generateAIBirthdayWish, AIStyle } from '@/lib/ai-generator';
 import RazorpayModal from '@/components/RazorpayModal';
@@ -26,6 +27,7 @@ function BuilderContent() {
   const existingId = searchParams.get('id');
   const initialTemplateParam = searchParams.get('template') as TemplateId | null;
   const initialPlanParam = searchParams.get('plan') as PlanId | null;
+  const { user } = useAuth();
 
   const [step, setStep] = useState<number>(1);
   const [selectedPlanId, setSelectedPlanId] = useState<PlanId>(initialPlanParam || 'ultimate');
@@ -172,7 +174,6 @@ function BuilderContent() {
   };
 
   const constructWebsiteObject = (): BirthdayWebsite => {
-    const user = getCurrentUser();
     return {
       id: websiteId,
       slug: slug || `${personName.toLowerCase()}-surprise`,
@@ -226,21 +227,21 @@ function BuilderContent() {
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-blue-200 pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">Birthday Website Generator</span>
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Birthday Website Generator</span>
             {dailyUsage.isLimitReached ? (
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-extrabold flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-700 text-[11px] font-extrabold flex items-center gap-1">
                 ⚠️ Daily Limit Reached (3/3 Free Used)
               </span>
             ) : (
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-extrabold flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-blue-700 text-[11px] font-extrabold flex items-center gap-1">
                 🔥 {dailyUsage.count}/3 Daily Free Uses
               </span>
             )}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">Create Birthday Website 🎁</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">Create Birthday Website 🎁</h1>
         </div>
 
         <div className="flex items-center gap-3">
@@ -249,8 +250,8 @@ function BuilderContent() {
             onClick={() => setShowPreview(!showPreview)}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
               showPreview 
-                ? 'bg-purple-500 text-white' 
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'bg-blue-500 text-white' 
+                : 'bg-white border border-blue-200 text-slate-600 hover:bg-blue-50'
             }`}
           >
             <Eye className="w-4 h-4" /> {showPreview ? 'Hide Preview' : 'Live Preview'}
@@ -259,14 +260,14 @@ function BuilderContent() {
           {dailyUsage.isLimitReached ? (
             <button
               onClick={handlePublishDirectly}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 text-white font-extrabold text-xs shadow-lg shadow-amber-500/25 flex items-center gap-1.5 cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 text-white font-extrabold text-xs shadow-lg shadow-amber-500/25 flex items-center gap-1.5 cursor-pointer"
             >
               <Rocket className="w-4 h-4" /> Upgrade & Publish (3/3 Used) 💳
             </button>
           ) : (
             <button
               onClick={handlePublishDirectly}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-600 text-white font-extrabold text-xs shadow-lg shadow-rose-500/25 flex items-center gap-1.5 cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 text-white font-extrabold text-xs shadow-lg shadow-blue-500/25 flex items-center gap-1.5 cursor-pointer"
             >
               <Rocket className="w-4 h-4" /> Publish Free ({3 - dailyUsage.count} Left Today) 🚀
             </button>
@@ -281,7 +282,7 @@ function BuilderContent() {
         <div className={`${showPreview ? 'lg:w-1/2' : 'w-full'} space-y-8`}>
 
       {/* Step Stepper Navigation */}
-      <div className="grid grid-cols-6 gap-2 bg-slate-900/80 p-2 rounded-2xl border border-slate-800 text-center text-xs font-bold">
+      <div className="grid grid-cols-6 gap-2 bg-white p-2 rounded-2xl border border-blue-200 text-center text-xs font-bold shadow-sm">
         {[
           { num: 1, label: 'Person', icon: UserIcon },
           { num: 2, label: 'Message', icon: Heart },
@@ -298,7 +299,7 @@ function BuilderContent() {
             <button
               key={item.num}
               onClick={() => setStep(item.num)}
-              className={`py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${isActive ? 'bg-rose-500 text-white shadow-lg' : isDone ? 'bg-slate-800 text-slate-300' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${isActive ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : isDone ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:text-blue-600'}`}
             >
               <Icon className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">{item.label}</span>
@@ -309,59 +310,59 @@ function BuilderContent() {
 
       {/* STEP 1: BIRTHDAY PERSON INFORMATION */}
       {step === 1 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-6">
-          <h2 className="text-xl font-bold text-white">Step 1 — Birthday Person Details 👤</h2>
-          <p className="text-xs text-slate-400">Fill in details to personalize the birthday website experience.</p>
+        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
+          <h2 className="text-xl font-bold text-slate-900">Step 1 — Birthday Person Details 👤</h2>
+          <p className="text-xs text-slate-600">Fill in details to personalize the birthday website experience.</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Birthday Person Name *</label>
+              <label className="text-xs font-semibold text-slate-700">Birthday Person Name *</label>
               <input
                 type="text"
                 value={personName}
                 onChange={(e) => setPersonName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:border-rose-500 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Nickname (Optional)</label>
+              <label className="text-xs font-semibold text-slate-700">Nickname (Optional)</label>
               <input
                 type="text"
                 value={personNickname}
                 onChange={(e) => setPersonNickname(e.target.value)}
                 placeholder="e.g. Rohu, Anu, Champ"
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:border-rose-500 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Turning Age</label>
+              <label className="text-xs font-semibold text-slate-700">Turning Age</label>
               <input
                 type="number"
                 value={personAge}
                 onChange={(e) => setPersonAge(parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:border-rose-500 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Birthday Date</label>
+              <label className="text-xs font-semibold text-slate-700">Birthday Date</label>
               <input
                 type="date"
                 value={birthdayDate}
                 onChange={(e) => setBirthdayDate(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:border-rose-500 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Your Relationship</label>
+              <label className="text-xs font-semibold text-slate-700">Your Relationship</label>
               <select
                 value={relationship}
                 onChange={(e) => setRelationship(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:border-rose-500 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               >
                 <option>Partner / Lover</option>
                 <option>Best Friend</option>
@@ -374,53 +375,53 @@ function BuilderContent() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Favorite Color</label>
+              <label className="text-xs font-semibold text-slate-700">Favorite Color</label>
               <div className="flex gap-2">
                 <input
                   type="color"
                   value={favColor}
                   onChange={(e) => setFavColor(e.target.value)}
-                  className="w-12 h-10 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer"
+                  className="w-12 h-10 rounded-xl bg-white border border-blue-200 cursor-pointer"
                 />
                 <input
                   type="text"
                   value={favColor}
                   onChange={(e) => setFavColor(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm font-mono"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Favorite Song</label>
+              <label className="text-xs font-semibold text-slate-700">Favorite Song</label>
               <input
                 type="text"
                 value={favSong}
                 onChange={(e) => setFavSong(e.target.value)}
                 placeholder="e.g. Perfect by Ed Sheeran"
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Favorite Food / Treat</label>
+              <label className="text-xs font-semibold text-slate-700">Favorite Food / Treat</label>
               <input
                 type="text"
                 value={favFood}
                 onChange={(e) => setFavFood(e.target.value)}
                 placeholder="e.g. Red Velvet Cake & Pizza"
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-semibold text-slate-300">Hobbies & Passions (Comma separated)</label>
+              <label className="text-xs font-semibold text-slate-700">Hobbies & Passions (Comma separated)</label>
               <input
                 type="text"
                 value={hobbyInput}
                 onChange={(e) => setHobbyInput(e.target.value)}
                 placeholder="e.g. Guitar, Photography, Road Trips"
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
@@ -429,7 +430,7 @@ function BuilderContent() {
           <div className="flex justify-end pt-4">
             <button
               onClick={() => setStep(2)}
-              className="px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25"
             >
               <span>Next: Write Message</span>
               <ArrowRight className="w-4 h-4" />
@@ -441,23 +442,23 @@ function BuilderContent() {
 
       {/* STEP 2: PERSONAL MESSAGE & AI GENERATOR */}
       {step === 2 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-6">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-white">Step 2 — Personal Message ❤️</h2>
-              <p className="text-xs text-slate-400">Write your own message or use AI to craft the perfect wish.</p>
+              <h2 className="text-xl font-bold text-slate-900">Step 2 — Personal Message ❤️</h2>
+              <p className="text-xs text-slate-600">Write your own message or use AI to craft the perfect wish.</p>
             </div>
 
             {/* AI Generator Style Buttons */}
-            <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+            <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-purple-300 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" /> AI Message Generator
+                <span className="text-xs font-bold text-blue-600 flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-500" /> AI Message Generator
                 </span>
                 <select
                   value={aiStyle}
                   onChange={(e) => setAiStyle(e.target.value as AIStyle)}
-                  className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                  className="px-2 py-1 rounded-lg bg-white border border-blue-200 text-slate-700 text-xs focus:border-blue-500 focus:outline-none"
                 >
                   <option value="emotional">Emotional ❤️</option>
                   <option value="funny">Funny 😂</option>
@@ -473,7 +474,7 @@ function BuilderContent() {
               <button
                 onClick={handleGenerateAIMessage}
                 disabled={isGeneratingAI}
-                className="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-blue-500/25"
               >
                 <Wand2 className={`w-3.5 h-3.5 ${isGeneratingAI ? 'animate-spin' : ''}`} />
                 {isGeneratingAI ? 'Generating AI Wish...' : 'Generate with AI ✨'}
@@ -482,25 +483,25 @@ function BuilderContent() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-300">Birthday Message Text</label>
+            <label className="text-xs font-semibold text-slate-700">Birthday Message Text</label>
             <textarea
               rows={8}
               value={birthdayMessage}
               onChange={(e) => setBirthdayMessage(e.target.value)}
-              className="w-full p-4 rounded-2xl bg-slate-950 border border-slate-800 text-white text-sm focus:border-rose-500 focus:outline-none leading-relaxed font-sans"
+              className="w-full p-4 rounded-2xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none leading-relaxed font-sans"
             />
           </div>
 
           <div className="flex justify-between pt-4">
             <button
               onClick={() => setStep(1)}
-              className="px-6 py-3 rounded-xl bg-slate-800 text-slate-200 font-bold text-xs flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-white border border-blue-200 text-slate-600 font-bold text-xs flex items-center gap-2 hover:bg-blue-50"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={() => setStep(3)}
-              className="px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25"
             >
               <span>Next: Add Photos</span>
               <ArrowRight className="w-4 h-4" />
@@ -511,35 +512,35 @@ function BuilderContent() {
 
       {/* STEP 3: PHOTOS & MEMORIES */}
       {step === 3 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-6">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-white">Step 3 — Photos & Memories 📸</h2>
-            <p className="text-xs text-slate-400">Upload photos with memory captions to create photo galleries & polaroid sliders.</p>
+            <h2 className="text-xl font-bold text-slate-900">Step 3 — Photos & Memories 📸</h2>
+            <p className="text-xs text-slate-600">Upload photos with memory captions to create photo galleries & polaroid sliders.</p>
           </div>
 
           {/* Add Photo Input */}
-          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Add Photo by Image URL</h3>
+          <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 space-y-4">
+            <h3 className="text-xs font-bold text-blue-700 uppercase tracking-wider">Add Photo by Image URL</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 type="text"
                 placeholder="Image URL (https://...)"
                 value={newPhotoUrl}
                 onChange={(e) => setNewPhotoUrl(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs"
+                className="px-3 py-2 rounded-xl bg-white border border-blue-200 text-slate-700 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
               <input
                 type="text"
                 placeholder="Caption memory note..."
                 value={newPhotoCaption}
                 onChange={(e) => setNewPhotoCaption(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs"
+                className="px-3 py-2 rounded-xl bg-white border border-blue-200 text-slate-700 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <button
               onClick={handleAddPhoto}
-              className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-blue-500/25"
             >
               <Plus className="w-4 h-4" /> Add Photo
             </button>
@@ -548,17 +549,17 @@ function BuilderContent() {
           {/* Photos Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {photos.map((p) => (
-              <div key={p.id} className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 group p-3 space-y-2">
-                <div className="relative h-40 w-full rounded-xl overflow-hidden bg-slate-900">
+              <div key={p.id} className="relative rounded-2xl overflow-hidden bg-white border border-blue-200 group p-3 space-y-2 shadow-sm">
+                <div className="relative h-40 w-full rounded-xl overflow-hidden bg-blue-50">
                   <Image src={p.url} alt={p.caption} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                   <button
                     onClick={() => handleRemovePhoto(p.id)}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <p className="text-xs text-white font-semibold truncate">{p.caption}</p>
+                <p className="text-xs text-slate-900 font-semibold truncate">{p.caption}</p>
               </div>
             ))}
           </div>
@@ -566,13 +567,13 @@ function BuilderContent() {
           <div className="flex justify-between pt-4">
             <button
               onClick={() => setStep(2)}
-              className="px-6 py-3 rounded-xl bg-slate-800 text-slate-200 font-bold text-xs flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-white border border-blue-200 text-slate-600 font-bold text-xs flex items-center gap-2 hover:bg-blue-50"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={() => setStep(4)}
-              className="px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25"
             >
               <span>Next: Select Music</span>
               <ArrowRight className="w-4 h-4" />
@@ -583,10 +584,10 @@ function BuilderContent() {
 
       {/* STEP 4: MUSIC */}
       {step === 4 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-6">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-white">Step 4 — Background Music 🎵</h2>
-            <p className="text-xs text-slate-400">Select copyright-safe birthday music or upload a custom audio track.</p>
+            <h2 className="text-xl font-bold text-slate-900">Step 4 — Background Music 🎵</h2>
+            <p className="text-xs text-slate-600">Select copyright-safe birthday music or upload a custom audio track.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -594,19 +595,19 @@ function BuilderContent() {
               <div
                 key={track.id}
                 onClick={() => setSelectedMusicTrack(track)}
-                className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${selectedMusicTrack.id === track.id ? 'bg-purple-900/20 border-purple-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'}`}
+                className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${selectedMusicTrack.id === track.id ? 'bg-blue-50 border-blue-500 text-slate-900' : 'bg-white border-blue-200 text-slate-600 hover:border-blue-300'}`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-500">
                     <Music className="w-5 h-5" />
                   </div>
                   <div>
                     <h4 className="font-bold text-sm">{track.title}</h4>
-                    <p className="text-xs text-slate-400">{track.artist}</p>
+                    <p className="text-xs text-slate-500">{track.artist}</p>
                   </div>
                 </div>
                 {selectedMusicTrack.id === track.id && (
-                  <Check className="w-5 h-5 text-purple-400" />
+                  <Check className="w-5 h-5 text-blue-500" />
                 )}
               </div>
             ))}
@@ -615,13 +616,13 @@ function BuilderContent() {
           <div className="flex justify-between pt-4">
             <button
               onClick={() => setStep(3)}
-              className="px-6 py-3 rounded-xl bg-slate-800 text-slate-200 font-bold text-xs flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-white border border-blue-200 text-slate-600 font-bold text-xs flex items-center gap-2 hover:bg-blue-50"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={() => setStep(5)}
-              className="px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25"
             >
               <span>Next: Pick Template</span>
               <ArrowRight className="w-4 h-4" />
@@ -632,10 +633,10 @@ function BuilderContent() {
 
       {/* STEP 5: TEMPLATES & CUSTOMIZATION */}
       {step === 5 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-6">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-white">Step 5 — Select & Customize Template 🎨</h2>
-            <p className="text-xs text-slate-400">Pick from 8 visual themes and customize colors & typography.</p>
+            <h2 className="text-xl font-bold text-slate-900">Step 5 — Select & Customize Template 🎨</h2>
+            <p className="text-xs text-slate-600">Pick from 8 visual themes and customize colors & typography.</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -643,12 +644,12 @@ function BuilderContent() {
               <div
                 key={tpl.id}
                 onClick={() => setSelectedTemplateId(tpl.id)}
-                className={`p-3 rounded-2xl border cursor-pointer space-y-2 transition-all ${selectedTemplateId === tpl.id ? 'bg-rose-500/20 border-rose-500 ring-2 ring-rose-500/50' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}`}
+                className={`p-3 rounded-2xl border cursor-pointer space-y-2 transition-all ${selectedTemplateId === tpl.id ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/50' : 'bg-white border-blue-200 hover:border-blue-300'}`}
               >
                 <div className="relative h-24 w-full rounded-xl overflow-hidden">
                   <Image src={tpl.previewImage} alt={tpl.name} fill sizes="25vw" className="object-cover opacity-70" />
                 </div>
-                <h4 className="font-bold text-xs text-white text-center">{tpl.name}</h4>
+                <h4 className="font-bold text-xs text-slate-900 text-center">{tpl.name}</h4>
               </div>
             ))}
           </div>
@@ -656,63 +657,45 @@ function BuilderContent() {
           <div className="flex justify-between pt-4">
             <button
               onClick={() => setStep(4)}
-              className="px-6 py-3 rounded-xl bg-slate-800 text-slate-200 font-bold text-xs flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-white border border-blue-200 text-slate-600 font-bold text-xs flex items-center gap-2 hover:bg-blue-50"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={() => setStep(6)}
-              className="px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25"
             >
-              <span>Next: Live Preview</span>
+              <span>Next: Preview & Publish</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP 6: LIVE PREVIEW & INSTANT PUBLISH */}
+      {/* STEP 6: PREVIEW & PUBLISH */}
       {step === 6 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-8">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-white">Step 6 — Live Preview & Instant Free Publish 🚀</h2>
-            <p className="text-xs text-slate-400">Review your generated birthday website and publish instantly for free.</p>
-          </div>
-
-          {/* Interactive Mobile Frame Preview */}
-          <div className="max-w-sm mx-auto rounded-[38px] border-8 border-slate-800 bg-slate-950 overflow-hidden shadow-2xl p-6 text-center space-y-6 relative">
-            <div className={`absolute inset-0 bg-gradient-to-b ${activeTemplateDef.bgGradient} opacity-90 -z-10`} />
-            
-            <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-white text-[10px] font-bold border border-white/20">
-              {activeTemplateDef.badge}
-            </span>
-
-            <div className="space-y-1">
-              <h3 className="text-2xl font-black text-white font-playfair">HAPPY BIRTHDAY {personName.toUpperCase()} 🎉</h3>
-              <p className="text-xs text-slate-200 italic line-clamp-3">&ldquo;{birthdayMessage}&rdquo;</p>
-            </div>
-
-            <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md text-xs text-white">
-              <span>🎵 Music: {selectedMusicTrack.title}</span>
-            </div>
+            <h2 className="text-xl font-bold text-slate-900">Step 6 — Preview & Publish 🚀</h2>
+            <p className="text-xs text-slate-600">Review your birthday website and publish it live.</p>
           </div>
 
           {/* Free Unlocked / Daily Usage Banner */}
           {dailyUsage.isLimitReached ? (
-            <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2">
+            <div className="p-5 rounded-2xl bg-amber-100 border border-amber-300 text-center space-y-2">
               <span className="px-3 py-1 rounded-full bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider">
                 Daily Free Limit Reached (3/3 Used Today)
               </span>
-              <p className="text-xs text-amber-200 font-semibold">
+              <p className="text-xs text-amber-700 font-semibold">
                 You have used your 3 free website creations for today. Next creations require a paid plan starting at ₹99.
               </p>
             </div>
           ) : (
-            <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2">
-              <span className="px-3 py-1 rounded-full bg-emerald-500 text-slate-950 font-black text-xs uppercase tracking-wider">
+            <div className="p-5 rounded-2xl bg-blue-100 border border-blue-300 text-center space-y-2">
+              <span className="px-3 py-1 rounded-full bg-blue-500 text-white font-black text-xs uppercase tracking-wider">
                 {3 - dailyUsage.count} Free Creation{3 - dailyUsage.count === 1 ? '' : 's'} Remaining Today
               </span>
-              <p className="text-xs text-emerald-300 font-semibold">
+              <p className="text-xs text-blue-700 font-semibold">
                 You get 3 free creations every single day! All features included: Unlimited Photos, AI Message Writer, Background Music, Fireworks & Custom Link.
               </p>
             </div>
@@ -721,26 +704,16 @@ function BuilderContent() {
           <div className="flex justify-between items-center pt-4">
             <button
               onClick={() => setStep(5)}
-              className="px-6 py-3 rounded-xl bg-slate-800 text-slate-200 font-bold text-xs flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-white border border-blue-200 text-slate-600 font-bold text-xs flex items-center gap-2 hover:bg-blue-50"
             >
-              <ArrowLeft className="w-4 h-4" /> Back to Customization
+              <ArrowLeft className="w-4 h-4" /> Back
             </button>
-
-            {dailyUsage.isLimitReached ? (
-              <button
-                onClick={handlePublishDirectly}
-                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-600 to-purple-600 hover:from-amber-600 text-white font-black text-base shadow-2xl shadow-amber-500/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-              >
-                <Rocket className="w-5 h-5 text-amber-300 animate-pulse" /> Pay & Publish Website (3/3 Used) 💳
-              </button>
-            ) : (
-              <button
-                onClick={handlePublishDirectly}
-                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-rose-500 via-purple-600 to-amber-400 hover:from-rose-600 hover:to-amber-500 text-white font-black text-base shadow-2xl shadow-rose-500/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-              >
-                <Rocket className="w-5 h-5 text-amber-300 animate-pulse" /> Publish Birthday Website Free ({3 - dailyUsage.count} Left) 🚀
-              </button>
-            )}
+            <button
+              onClick={handlePublishDirectly}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/25"
+            >
+              <Rocket className="w-4 h-4" /> Publish Website Free
+            </button>
           </div>
         </div>
       )}
@@ -764,11 +737,11 @@ function BuilderContent() {
         {showPreview && (
           <div className="lg:w-1/2">
             <div className="sticky top-4">
-              <div className="p-4 rounded-2xl glass-luxury mb-4 flex items-center justify-between">
-                <span className="text-xs font-bold text-white">Live Preview</span>
-                <span className="text-[10px] text-slate-400">Updates in real-time</span>
+              <div className="p-4 rounded-2xl bg-white border border-blue-200 shadow-sm mb-4 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900">Live Preview</span>
+                <span className="text-[10px] text-slate-500">Updates in real-time</span>
               </div>
-              <div className="rounded-3xl overflow-hidden border border-slate-700 h-[calc(100vh-200px)]">
+              <div className="rounded-3xl overflow-hidden border border-blue-200 h-[calc(100vh-200px)]">
                 <BuilderPreview website={{
                   personName,
                   personNickname,
@@ -780,7 +753,7 @@ function BuilderContent() {
                   music: selectedMusicTrack,
                   templateId: selectedTemplateId,
                   customizations,
-                  creatorName: getCurrentUser()?.name || 'Someone'
+                  creatorName: user?.name || 'Someone'
                 }} />
               </div>
             </div>

@@ -189,8 +189,8 @@ export const DEFAULT_MUSIC_TRACKS: MusicTrack[] = [
 
 export const INITIAL_USER: User = {
   id: 'user-demo-1',
-  name: 'Aarav Sharma',
-  email: 'aarav@example.com',
+  name: 'Abhishek',
+  email: 'abhishek@example.com',
   role: 'user',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop',
   createdAt: '2026-07-15',
@@ -199,7 +199,7 @@ export const INITIAL_USER: User = {
 
 export const INITIAL_ADMIN: User = {
   id: 'user-admin-1',
-  name: 'SaaS Admin',
+  name: 'Abhishek Admin',
   email: 'admin@celebrationcraft.com',
   role: 'admin',
   avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop',
@@ -212,7 +212,7 @@ export const INITIAL_WEBSITES: BirthdayWebsite[] = [
     id: 'site-rohan-9821',
     slug: 'rohan-special-24',
     userId: 'user-demo-1',
-    creatorName: 'Aarav',
+    creatorName: 'Abhishek',
     personName: 'Rohan Mehta',
     personNickname: 'Rohu',
     personAge: 24,
@@ -270,7 +270,7 @@ export const INITIAL_WEBSITES: BirthdayWebsite[] = [
     id: 'site-ananya-4412',
     slug: 'ananya-my-love',
     userId: 'user-demo-1',
-    creatorName: 'Aarav',
+    creatorName: 'Abhishek',
     personName: 'Ananya Roy',
     personNickname: 'Anu',
     personAge: 22,
@@ -321,8 +321,8 @@ export const INITIAL_ORDERS: Order[] = [
   {
     id: 'ORD-9821',
     userId: 'user-demo-1',
-    userName: 'Aarav Sharma',
-    userEmail: 'aarav@example.com',
+    userName: 'Abhishek',
+    userEmail: 'abhishek@example.com',
     websiteId: 'site-rohan-9821',
     websiteSlug: 'rohan-special-24',
     personName: 'Rohan Mehta',
@@ -338,8 +338,8 @@ export const INITIAL_ORDERS: Order[] = [
   {
     id: 'ORD-4412',
     userId: 'user-demo-1',
-    userName: 'Aarav Sharma',
-    userEmail: 'aarav@example.com',
+    userName: 'Abhishek',
+    userEmail: 'abhishek@example.com',
     websiteId: 'site-ananya-4412',
     websiteSlug: 'ananya-my-love',
     personName: 'Ananya Roy',

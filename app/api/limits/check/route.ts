@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PLAN_LIMITS, canAddPhoto, canAddVideo, hasFeatureAccess } from '@/lib/limits';
+import { PlanId } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,26 +13,31 @@ export async function POST(request: NextRequest) {
     let allowed = false;
     let limit = 0;
 
+    const limits = PLAN_LIMITS[planId as PlanId];
+    if (!limits) {
+      return NextResponse.json({ error: 'Invalid plan ID' }, { status: 400 });
+    }
+
     switch (feature) {
       case 'photos':
-        allowed = canAddPhoto(planId, currentValue);
-        limit = PLAN_LIMITS[planId].maxPhotos;
+        allowed = canAddPhoto(planId as PlanId, currentValue);
+        limit = limits.maxPhotos;
         break;
       case 'videos':
-        allowed = canAddVideo(planId, currentValue);
-        limit = PLAN_LIMITS[planId].maxVideos;
+        allowed = canAddVideo(planId as PlanId, currentValue);
+        limit = limits.maxVideos;
         break;
       case 'ai':
-        allowed = hasFeatureAccess(planId, 'hasAI');
+        allowed = hasFeatureAccess(planId as PlanId, 'hasAI');
         break;
       case 'video_upload':
-        allowed = hasFeatureAccess(planId, 'hasVideoUpload');
+        allowed = hasFeatureAccess(planId as PlanId, 'hasVideoUpload');
         break;
       case 'advanced_animations':
-        allowed = hasFeatureAccess(planId, 'hasAdvancedAnimations');
+        allowed = hasFeatureAccess(planId as PlanId, 'hasAdvancedAnimations');
         break;
       case 'qr_code':
-        allowed = hasFeatureAccess(planId, 'hasQRCode');
+        allowed = hasFeatureAccess(planId as PlanId, 'hasQRCode');
         break;
       default:
         return NextResponse.json({ error: 'Invalid feature' }, { status: 400 });

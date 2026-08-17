@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
+import { getSession } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const { websiteId, userId } = await request.json();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    if (!websiteId || !userId) {
-      return NextResponse.json({ error: 'Website ID and user ID required' }, { status: 400 });
+    const { websiteId } = await request.json();
+
+    if (!websiteId) {
+      return NextResponse.json({ error: 'Website ID required' }, { status: 400 });
     }
 
     // Get current website data
@@ -22,8 +28,8 @@ export async function POST(request: NextRequest) {
     const website = websites[0];
 
     // Verify ownership
-    if (website.user_id !== userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (website.user_id !== session.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Create version snapshot
@@ -63,11 +69,30 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const websiteId = searchParams.get('websiteId');
 
     if (!websiteId) {
       return NextResponse.json({ error: 'Website ID required' }, { status: 400 });
+    }
+
+    // Verify ownership before returning versions
+    const websites = await query(
+      'SELECT user_id FROM birthday_websites WHERE id = ?',
+      [websiteId]
+    ) as any[];
+
+    if (websites.length === 0) {
+      return NextResponse.json({ error: 'Website not found' }, { status: 404 });
+    }
+
+    if (websites[0].user_id !== session.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Get versions for website

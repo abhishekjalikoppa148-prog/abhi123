@@ -131,7 +131,7 @@ export default function SocialShareModal({ slug, personName, onClose }: SocialSh
         </div>
 
         {/* Native Share Button */}
-        {typeof navigator !== 'undefined' && navigator.share && (
+        {typeof navigator !== 'undefined' && navigator.share && typeof navigator.share === 'function' && (
           <button
             onClick={handleNativeShare}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-500 to-purple-600 text-white font-bold text-sm flex items-center justify-center gap-2 hover:from-rose-600 hover:to-purple-700 transition-all"

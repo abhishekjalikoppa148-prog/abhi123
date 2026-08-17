@@ -1,56 +1,81 @@
 'use client';
 
-import { useState, useActionState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Lock, Mail, User as UserIcon, ArrowRight } from 'lucide-react';
-import { signupUser } from '@/lib/store';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export default function SignupPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
-  function handleSignupSubmit(_prevState: unknown, formData: FormData) {
+  const handleSignupSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsPending(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const confirmPassword = formData.get('confirmPassword') as string;
 
     if (!name || !email || !password) {
-      return { error: 'Please fill in all required fields' };
+      setError('Please fill in all required fields');
+      setIsPending(false);
+      return;
     }
     if (password !== confirmPassword) {
-      return { error: 'Passwords do not match' };
+      setError('Passwords do not match');
+      setIsPending(false);
+      return;
     }
     if (!agreed) {
-      return { error: 'You must agree to the Terms & Conditions' };
+      setError('You must agree to the Terms & Conditions');
+      setIsPending(false);
+      return;
     }
 
     try {
-      signupUser(name, email);
-      router.push('/dashboard');
-      return { success: true };
-    } catch {
-      return { error: 'Failed to create account. Try again.' };
-    }
-  }
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-  const [state, formAction, isPending] = useActionState(handleSignupSubmit, null);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to create account. Try again.');
+        setIsPending(false);
+        return;
+      }
+
+      await refreshUser();
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create account. Try again.');
+      setIsPending(false);
+    }
+  };
 
   const handleGoogleSignup = () => {
-    signupUser('Aarav Sharma', 'aarav@example.com');
-    router.push('/dashboard');
+    alert('Google signup not implemented yet. Please use email/password.');
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md space-y-8 p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl">
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-blue-50 to-white">
+      <div className="w-full max-w-md space-y-8 p-8 rounded-3xl bg-white border border-blue-200 shadow-lg backdrop-blur-xl">
         
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-xl shadow-rose-500/20 mx-auto mb-3 border border-purple-500/40 bg-slate-950 p-1">
+          <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-blue-500/20 mx-auto mb-3 border border-blue-200 bg-white p-1">
             <Image
               src="/logo.png"
               alt="Logo"
@@ -59,51 +84,51 @@ export default function SignupPage() {
               className="w-full h-full object-contain rounded-xl"
             />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Create Your Account 🎁</h1>
-          <p className="text-xs sm:text-sm text-slate-400">Start creating unforgettable birthday surprises.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Create Your Account 🎁</h1>
+          <p className="text-xs sm:text-sm text-slate-600">Start creating unforgettable birthday surprises.</p>
         </div>
 
         {/* Form */}
-        <form action={formAction} className="space-y-4">
-          {state?.error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold">
-              {state.error}
+        <form onSubmit={handleSignupSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold">
+              {error}
             </div>
           )}
 
           {/* Full Name */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Full Name</label>
+            <label className="text-xs font-semibold text-slate-700">Full Name</label>
             <div className="relative">
               <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 name="name"
                 required
-                placeholder="Aarav Sharma"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                placeholder="Abhishek"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
               />
             </div>
           </div>
 
           {/* Email */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Email Address</label>
+            <label className="text-xs font-semibold text-slate-700">Email Address</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 name="email"
                 required
-                placeholder="aarav@example.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                placeholder="abhishek@example.com"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
               />
             </div>
           </div>
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Password</label>
+            <label className="text-xs font-semibold text-slate-700">Password</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -111,12 +136,12 @@ export default function SignupPage() {
                 name="password"
                 required
                 placeholder="••••••••"
-                className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-600"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -125,7 +150,7 @@ export default function SignupPage() {
 
           {/* Confirm Password */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Confirm Password</label>
+            <label className="text-xs font-semibold text-slate-700">Confirm Password</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -133,49 +158,51 @@ export default function SignupPage() {
                 name="confirmPassword"
                 required
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-600"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
-          {/* T&C Checkbox */}
-          <div className="pt-1">
-            <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-400">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 rounded accent-rose-500"
-              />
-              <span>
-                I agree to the <span className="text-rose-400 hover:underline">Terms & Conditions</span> and{' '}
-                <span className="text-rose-400 hover:underline">Privacy Policy</span>
-              </span>
-            </label>
-          </div>
+          {/* Terms */}
+          <label className="flex items-start gap-2 cursor-pointer text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 rounded accent-blue-500"
+            />
+            <span>I agree to the <Link href="/terms" className="text-blue-600 hover:text-blue-700 font-semibold">Terms of Service</Link> and <Link href="/privacy" className="text-blue-600 hover:text-blue-700 font-semibold">Privacy Policy</Link></span>
+          </label>
 
           {/* Submit Button */}
           <button
             type="submit"
             disabled={isPending}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white font-extrabold text-sm shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-extrabold text-sm shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <span>Create Account</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        {/* Social Signup */}
+        {/* Social Login */}
         <div className="space-y-4">
           <div className="relative flex items-center justify-center">
-            <div className="border-t border-slate-800 w-full" />
-            <span className="bg-slate-900 px-3 text-[11px] text-slate-500 font-semibold uppercase">Or</span>
+            <div className="border-t border-blue-200 w-full" />
+            <span className="bg-white px-3 text-[11px] text-slate-500 font-semibold uppercase">Or</span>
           </div>
 
           <button
             type="button"
             onClick={handleGoogleSignup}
-            className="w-full py-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            className="w-full py-3 rounded-xl bg-white hover:bg-blue-50 border border-blue-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -188,10 +215,10 @@ export default function SignupPage() {
         </div>
 
         {/* Footer link */}
-        <div className="text-center text-xs text-slate-400">
+        <div className="text-center text-xs text-slate-600">
           Already have an account?{' '}
-          <Link href="/login" className="text-rose-400 hover:text-rose-300 font-bold">
-            Login
+          <Link href="/login" className="text-blue-600 hover:text-blue-700 font-bold">
+            Sign In
           </Link>
         </div>
 

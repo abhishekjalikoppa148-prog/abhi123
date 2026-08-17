@@ -299,7 +299,11 @@ export function getAdminStats() {
       todaysSales: 0,
       activeWebsites: 289,
       failedPayments: 0,
-      totalViews: 14820
+      totalViews: 14820,
+      conversionRate: 0,
+      avgOrderValue: 0,
+      churnRate: 0,
+      monthlyRecurringRevenue: 0
     };
   }
   initStorage();
@@ -318,6 +322,10 @@ export function getAdminStats() {
     todaysSales: 0,
     activeWebsites: websites.length,
     failedPayments: 0,
-    totalViews
+    totalViews,
+    conversionRate: 0,
+    avgOrderValue: 0,
+    churnRate: 0,
+    monthlyRecurringRevenue: 0
   };
 }

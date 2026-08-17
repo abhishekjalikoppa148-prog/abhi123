@@ -6,38 +6,68 @@ A premium, production-ready commercial SaaS platform for creating personalized b
 
 ### Core Functionality
 - **Multi-Step Builder** with live preview split-screen
-- **AI Personalization** for birthday messages
-- **Photo & Video Upload** system
-- **Premium Templates** (8+ themes)
+- **AI Personalization** for birthday messages (OpenAI GPT integration)
+- **Photo & Video Upload** system with drag-and-drop
+- **Premium Templates** (8+ themes with customizable layouts)
 - **Customization Engine** with colors, fonts, animations
-- **Background Music** integration
+- **Background Music** integration with visualizer
 - **QR Code Generation** for easy sharing
 - **Social Sharing** across all platforms
+- **Birthday Countdown** with timezone support
+- **Memory Timeline** with photo galleries
+- **Interactive Candle Blowing** with sound effects
+- **Surprise Gift Box** opening animation
 
 ### Business Features
 - **Plan Limits System** (Basic, Premium, Ultimate)
 - **Expiration Management** with auto-renewal
 - **Payment Integration** with Razorpay
 - **Order History** and invoice generation
-- **Analytics Dashboard** with visitor insights
+- **Analytics Dashboard** with visitor insights and conversion funnel
 - **Admin Portal** for full platform management
+- **Transactional Email System** (Resend/SendGrid)
 
 ### Security & Performance
 - **Security Hardening** with input validation
 - **Rate Limiting** and CSRF protection
-- **MySQL Database** integration
+- **MySQL Database** integration with connection pooling
 - **Mobile-First** responsive design
-- **Glassmorphism UI** with premium animations
-- **SEO Optimized** with Open Graph tags
+- **Modern Blue + White UI** with premium glassmorphism effects
+- **SEO Optimized** with Open Graph and Twitter Cards
+- **Server-side validation** for all critical operations
 
 ## Tech Stack
 
 - **Frontend**: Next.js 16.3.0, React 19.2.8, TypeScript
-- **Styling**: Tailwind CSS, custom glassmorphism effects
-- **Database**: MySQL 8.0+
-- **Payment**: Razorpay
+- **Styling**: Tailwind CSS with custom blue/white theme, glassmorphism effects
+- **Database**: MySQL 8.0+ with connection pooling
+- **Payment**: Razorpay integration
+- **AI**: OpenAI GPT-3.5 API for personalized messages
+- **Email**: Resend/SendGrid for transactional emails
 - **Authentication**: Custom implementation with localStorage fallback
 - **Deployment**: Vercel-ready
+- **Fonts**: Inter, Plus Jakarta Sans, Poppins
+
+## Design System
+
+### Color Palette
+- **Primary Blue**: `#2563EB`
+- **Dark Blue**: `#1E3A8A`
+- **Light Blue**: `#EFF6FF`
+- **White**: `#FFFFFF`
+- **Background**: `#F8FAFC`
+- **Text**: `#0F172A`
+- **Secondary Text**: `#64748B`
+- **Border**: `#E2E8F0`
+
+### Design Principles
+- Clean, modern, professional SaaS appearance
+- White backgrounds with blue accents
+- Blue gradient buttons and important CTAs
+- Soft blue shadows and subtle borders
+- Rounded cards with 16px–24px border radius
+- Smooth hover animations
+- Fully responsive on desktop, tablet, and mobile
 
 ## Getting Started
 
@@ -62,6 +92,10 @@ DB_PASSWORD=your_password
 DB_NAME=birthday_saas
 RAZORPAY_KEY_ID=your_key_id
 RAZORPAY_KEY_SECRET=your_key_secret
+OPENAI_API_KEY=your_openai_key
+RESEND_API_KEY=your_resend_key
+SENDGRID_API_KEY=your_sendgrid_key
+EMAIL_FROM=noreply@celebrationcraft.com
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 

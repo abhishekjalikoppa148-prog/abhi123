@@ -5,34 +5,49 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { 
   Plus, Eye, Edit3, Share2, Copy, QrCode, Trash2, Globe, Sparkles, CheckCircle2, 
-  Gift
+  Gift, Rocket
 } from 'lucide-react';
-import { getCurrentUser, getWebsites, deleteWebsite } from '@/lib/store';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { getDaysUntil, isExpired, formatDate } from '@/lib/utils';
-import { BirthdayWebsite, User } from '@/lib/types';
+import { BirthdayWebsite } from '@/lib/types';
 import { TEMPLATES } from '@/lib/sample-data';
 import QRCodeModal from '@/components/QRCodeModal';
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [websites, setWebsites] = useState<BirthdayWebsite[]>([]);
+  const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [qrModalSite, setQrModalSite] = useState<BirthdayWebsite | null>(null);
 
   useEffect(() => {
-    const currUser = getCurrentUser();
-    setUser(currUser);
-    if (currUser) {
-      setWebsites(getWebsites(currUser.id));
-    } else {
-      setWebsites(getWebsites());
-    }
-  }, []);
+    fetchWebsites();
+  }, [user]);
 
-  const handleDelete = (id: string) => {
+  const fetchWebsites = async () => {
+    try {
+      const res = await fetch('/api/websites');
+      if (res.ok) {
+        const data = await res.json();
+        setWebsites(data.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch websites:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this birthday website?')) {
-      deleteWebsite(id);
-      setWebsites(prev => prev.filter(w => w.id !== id));
+      try {
+        const res = await fetch(`/api/websites/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          setWebsites(prev => prev.filter(w => w.id !== id));
+        }
+      } catch (err) {
+        console.error('Failed to delete website:', err);
+      }
     }
   };
 
@@ -57,16 +72,16 @@ export default function DashboardPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-purple-950/60 border border-slate-800 shadow-2xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-blue-600 to-blue-700 border border-blue-200 shadow-lg">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-semibold">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
             <span>Dashboard Portal</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-extrabold text-white">
-            Welcome back, {user ? user.name : 'Aarav'} 👋
+            Welcome back, {user ? user.name : 'Abhishek'} 👋
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400">
+          <p className="text-xs sm:text-sm text-blue-100">
             Manage your personalized birthday websites, view visitor analytics, and create new surprises.
           </p>
         </div>
@@ -74,7 +89,7 @@ export default function DashboardPage() {
         <div>
           <Link
             href="/builder"
-            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white font-extrabold text-sm shadow-xl shadow-rose-500/25 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+            className="px-6 py-3.5 rounded-2xl bg-white hover:bg-blue-50 text-blue-600 font-extrabold text-sm shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
           >
             <Plus className="w-5 h-5" />
             <span>Create Birthday Website Free</span>
@@ -86,50 +101,50 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         
         {/* Card 1 - Total Websites */}
-        <div className="p-5 sm:p-6 rounded-2xl glass-luxury space-y-2 card-3d group">
+        <div className="p-5 sm:p-6 rounded-2xl bg-white border border-blue-200 shadow-sm space-y-2 card-3d group">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Total Websites</span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 group-hover:neon-purple transition-all">
+            <span className="text-xs font-semibold text-slate-600">Total Websites</span>
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-500 group-hover:neon-blue transition-all">
               <Globe className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-white">{totalWebsites}</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">{totalWebsites}</p>
           <p className="text-[11px] text-slate-500">Surprises created</p>
         </div>
 
         {/* Card 2 - Published Websites */}
-        <div className="p-5 sm:p-6 rounded-2xl glass-luxury space-y-2 card-3d group">
+        <div className="p-5 sm:p-6 rounded-2xl bg-white border border-blue-200 shadow-sm space-y-2 card-3d group">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Published</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all">
+            <span className="text-xs font-semibold text-slate-600">Published</span>
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-500 group-hover:neon-blue transition-all">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-white">{publishedWebsites}</p>
-          <p className="text-[11px] text-emerald-400 font-medium">Live & active</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">{publishedWebsites}</p>
+          <p className="text-[11px] text-blue-600 font-medium">Live & active</p>
         </div>
 
         {/* Card 3 - Draft Websites */}
-        <div className="p-5 sm:p-6 rounded-2xl glass-luxury space-y-2 card-3d group">
+        <div className="p-5 sm:p-6 rounded-2xl bg-white border border-blue-200 shadow-sm space-y-2 card-3d group">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Drafts</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 group-hover:shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all">
+            <span className="text-xs font-semibold text-slate-600">Drafts</span>
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-500 group-hover:neon-blue transition-all">
               <Edit3 className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-white">{draftWebsites}</p>
-          <p className="text-[11px] text-amber-400 font-medium">Awaiting payment</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">{draftWebsites}</p>
+          <p className="text-[11px] text-blue-600 font-medium">Awaiting payment</p>
         </div>
 
         {/* Card 4 - Total Views */}
-        <div className="p-5 sm:p-6 rounded-2xl glass-luxury space-y-2 card-3d group">
+        <div className="p-5 sm:p-6 rounded-2xl bg-white border border-blue-200 shadow-sm space-y-2 card-3d group">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Total Views</span>
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all">
+            <span className="text-xs font-semibold text-slate-600">Total Views</span>
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-500 group-hover:neon-blue transition-all">
               <Eye className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-white">{totalViews}</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">{totalViews}</p>
           <p className="text-[11px] text-slate-500">Visitor interactions</p>
         </div>
 
@@ -137,14 +152,14 @@ export default function DashboardPage() {
 
       {/* Getting Started Checklist for New Users */}
       {totalWebsites === 0 && (
-        <div className="p-6 rounded-3xl glass-luxury space-y-4">
+        <div className="p-6 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-500">
               <Gift className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Getting Started</h3>
-              <p className="text-xs text-slate-400">Complete these steps to create your first birthday website</p>
+              <h3 className="text-lg font-bold text-slate-900">Getting Started</h3>
+              <p className="text-xs text-slate-600">Complete these steps to create your first birthday website</p>
             </div>
           </div>
           
@@ -203,7 +218,11 @@ export default function DashboardPage() {
           <span className="text-xs text-slate-400 font-medium">{websites.length} items</span>
         </div>
 
-        {websites.length === 0 ? (
+        {loading ? (
+          <div className="p-12 text-center rounded-3xl bg-slate-900/50 border border-slate-800">
+            <p className="text-slate-400">Loading your websites...</p>
+          </div>
+        ) : websites.length === 0 ? (
           <div className="p-12 text-center rounded-3xl bg-slate-900/50 border border-slate-800 space-y-4">
             <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
               <Gift className="w-7 h-7" />

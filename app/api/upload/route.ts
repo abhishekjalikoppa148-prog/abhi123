@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { getSession } from '@/lib/auth';
+import { uploadToS3, generateS3Key } from '@/lib/storage';
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     
@@ -27,31 +31,47 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Create uploads directory if it doesn't exist
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
+    // Check if S3 is configured
+    if (!process.env.AWS_S3_BUCKET_NAME) {
+      // Fallback to local storage if S3 not configured
+      const { writeFile, mkdir } = await import('fs/promises');
+      const { join } = await import('path');
+      const { existsSync } = await import('fs');
+      
+      const uploadDir = join(process.cwd(), 'public', 'uploads');
+      if (!existsSync(uploadDir)) {
+        await mkdir(uploadDir, { recursive: true });
+      }
+
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 9);
+      const extension = file.name.split('.').pop();
+      const filename = `${timestamp}-${random}.${extension}`;
+      const filepath = join(uploadDir, filename);
+
+      await writeFile(filepath, buffer);
+
+      return NextResponse.json({
+        success: true,
+        url: `/uploads/${filename}`,
+        filename,
+        size: file.size,
+        type: file.type,
+        storage: 'local'
+      });
     }
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 9);
-    const extension = file.name.split('.').pop();
-    const filename = `${timestamp}-${random}.${extension}`;
-    const filepath = join(uploadDir, filename);
-
-    // Write file
-    await writeFile(filepath, buffer);
-
-    // Return public URL
-    const publicUrl = `/uploads/${filename}`;
+    // Upload to S3
+    const key = generateS3Key(session.userId, file.name);
+    const publicUrl = await uploadToS3(key, buffer, file.type);
 
     return NextResponse.json({
       success: true,
       url: publicUrl,
-      filename,
+      filename: key,
       size: file.size,
-      type: file.type
+      type: file.type,
+      storage: 's3'
     });
   } catch (error) {
     console.error('Upload error:', error);

@@ -1,10 +1,12 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ParticleBackground from '@/components/ParticleBackground';
+import { AuthProvider } from '@/components/auth/AuthProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://celebrationcraft.com'),
   title: 'CelebrationCraft 🎂 — Create Beautiful Birthday Websites | Premium SaaS Platform',
   description: 'Create personalized, interactive birthday surprise websites with music, photos, AI wish generator, interactive cake blowing, fireworks, and unique shareable links in minutes. Premium birthday website platform.',
   keywords: ['birthday website', 'birthday surprise', 'birthday wish generator', 'paid birthday website saas', 'personalized birthday gift', 'birthday website creator', 'online birthday card', 'digital birthday gift'],
@@ -35,11 +37,16 @@ export const metadata: Metadata = {
     images: ['/twitter-image.png'],
     creator: '@celebrationcraft'
   },
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
-  themeColor: '#e11d48',
   verification: {
     google: 'your-google-verification-code',
   }
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#e11d48',
 };
 
 export default function RootLayout({
@@ -50,12 +57,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark scroll-smooth">
       <body className="min-h-screen text-slate-100 flex flex-col selection:bg-rose-500 selection:text-white">
-        <ParticleBackground />
-        <Navbar />
-        <main className="flex-1 relative z-10">
-          {children}
-        </main>
-        <Footer />
+        <AuthProvider>
+          <ParticleBackground />
+          <Navbar />
+          <main className="flex-1 relative z-10">
+            {children}
+          </main>
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

@@ -10,7 +10,7 @@ export default function DemoPage() {
   const [candlesBlown, setCandlesBlown] = useState(false);
 
   const demoSteps = [
-    { id: 0, title: "Hey Ananya...", subtitle: "Someone made something special for you." },
+    { id: 0, title: "Hey Abhishek...", subtitle: "Someone made something special for you." },
     { id: 1, title: "Open Your Surprise", subtitle: "Click to reveal your birthday gift 🎁" },
     { id: 2, title: "Happy Birthday!", subtitle: "Wishing you the most amazing day! 🎂" },
     { id: 3, title: "Our Memories", subtitle: "All the beautiful moments we've shared 💕" },

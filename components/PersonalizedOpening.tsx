@@ -11,6 +11,24 @@ interface PersonalizedOpeningProps {
   onMessageChange?: (message: string) => void;
 }
 
+const getDefaultMessage = (creator: string, rel: string, name: string): string => {
+  const relLower = rel.toLowerCase();
+  
+  if (relLower.includes('partner') || relLower.includes('love')) {
+    return `Hey ${name}... I have something special to share with you. ❤️`;
+  } else if (relLower.includes('friend')) {
+    return `Hey ${name}! Get ready for something amazing! 🎉`;
+  } else if (relLower.includes('parent') || relLower.includes('mom') || relLower.includes('dad')) {
+    return `To my wonderful ${name}... You mean the world to me. 🌟`;
+  } else if (relLower.includes('sibling') || relLower.includes('brother') || relLower.includes('sister')) {
+    return `Hey ${name}! Your sibling made this just for you! 💝`;
+  } else if (relLower.includes('colleague') || relLower.includes('coworker')) {
+    return `Happy Birthday ${name}! Wishing you the best! 🎂`;
+  } else {
+    return `Hey ${name}! Someone special made this birthday surprise just for you! 🎁`;
+  }
+};
+
 export default function PersonalizedOpening({
   creatorName,
   relationship,
@@ -20,19 +38,6 @@ export default function PersonalizedOpening({
 }: PersonalizedOpeningProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState(customMessage || getDefaultMessage(creatorName, relationship, personName));
-
-  const getDefaultMessage = (creator: string, rel: string, name: string): string => {
-    const relLower = rel.toLowerCase();
-    
-    if (relLower.includes('partner') || relLower.includes('love')) {
-      return `Hey ${name}... I have something special to share with you. ❤️`;
-    } else if (relLower.includes('friend')) {
-      return `Hey ${name}! Get ready for something amazing! 🎉`;
-    } else if (relLower.includes('family') || relLower.includes('mom') || relLower.includes('dad')) {
-      return `Hey ${name}, I made this just for you. 💕`;
-    }
-    return `Hey ${name}... Someone made something special for you! 🎁`;
-  };
 
   const handleSave = () => {
     onMessageChange?.(message);

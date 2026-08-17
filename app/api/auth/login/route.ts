@@ -1,28 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail, createUser } from '@/lib/db';
-import { generateId } from '@/lib/utils';
+import { getUserByEmail } from '@/lib/mysql';
+import { verifyPassword, createSession, validateEmail, checkRateLimit } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 10 attempts per minute per IP
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    if (!checkRateLimit(`login:${ip}`, 10, 60_000)) {
+      return NextResponse.json({ error: 'Too many login attempts. Please try again later.' }, { status: 429 });
+    }
+
     const body = await request.json();
-    const { email, name } = body;
+    const { email, password } = body;
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    // Input validation
+    if (!email || !password) {
+      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    }
+    if (!validateEmail(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    let user = await getUserByEmail(email);
-
+    // Look up user
+    const user = await getUserByEmail(email.toLowerCase().trim());
     if (!user) {
-      // Create new user
-      const userId = generateId();
-      user = await createUser({
-        id: userId,
-        name: name || email.split('@')[0],
-        email,
-        role: 'user'
-      });
+      // Use same message to prevent email enumeration
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
+
+    // Verify password
+    if (!user.password_hash) {
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    }
+    const passwordValid = await verifyPassword(password, user.password_hash);
+    if (!passwordValid) {
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    }
+
+    // Create session cookie
+    await createSession({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    });
 
     return NextResponse.json({
       success: true,
@@ -32,11 +53,11 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
         avatar: user.avatar,
-        createdAt: user.created_at
-      }
+        plan: user.plan,
+      },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('[/api/auth/login] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

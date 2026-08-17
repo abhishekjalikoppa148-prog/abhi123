@@ -3,24 +3,23 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FileText, Eye, CheckCircle2, ShoppingBag } from 'lucide-react';
-import { getCurrentUser, getOrders } from '@/lib/store';
+import { getOrders } from '@/lib/store';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { Order, User } from '@/lib/types';
 import InvoiceModal from '@/components/InvoiceModal';
 
 export default function OrdersPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeInvoiceOrder, setActiveInvoiceOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    const curr = getCurrentUser();
-    setUser(curr);
-    if (curr) {
-      setOrders(getOrders(curr.id));
+    if (user) {
+      setOrders(getOrders(user.id));
     } else {
       setOrders(getOrders());
     }
-  }, []);
+  }, [user]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">

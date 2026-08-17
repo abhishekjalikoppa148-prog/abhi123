@@ -1,30 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
 import { generateSlug, calculateExpirationDate } from '@/lib/utils';
+import { getSession } from '@/lib/auth';
+import { canAddPhoto, canAddVideo, hasFeatureAccess, PLAN_LIMITS } from '@/lib/limits';
+import { isExpired } from '@/lib/expiration';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
-  const slug = searchParams.get('slug');
-
   try {
+    const session = await getSession();
+    const { searchParams } = new URL(request.url);
+    const slug = searchParams.get('slug');
+
     let sql = `SELECT * FROM birthday_websites ORDER BY created_at DESC`;
     const params: unknown[] = [];
-
-    if (userId) {
-      sql = `SELECT * FROM birthday_websites WHERE user_id = ? ORDER BY created_at DESC`;
-      params.push(userId);
-    }
 
     if (slug) {
       sql = `SELECT * FROM birthday_websites WHERE slug = ?`;
       params.push(slug);
+    } else {
+      if (!session) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      sql = `SELECT * FROM birthday_websites WHERE user_id = ? ORDER BY created_at DESC`;
+      params.push(session.userId);
     }
 
-    const websites = await query(sql, params);
-    
+    const websites = await query(sql, params) as any[];
+
+    if (slug && websites.length > 0) {
+      const website = websites[0];
+      // Check if website is expired
+      const expiresAt = new Date(website.expires_at);
+      if (expiresAt < new Date()) {
+        return NextResponse.json({ error: 'Website has expired' }, { status: 403 });
+      }
+      if (website.payment_status === 'unpaid' && (!session || session.userId !== website.user_id)) {
+        return NextResponse.json({ error: 'Website not published' }, { status: 403 });
+      }
+    }
+
     // Fetch photos for each website
-    for (const website of websites as any[]) {
+    for (const website of websites) {
       const photos = await query(
         'SELECT * FROM photo_memories WHERE website_id = ? ORDER BY created_at ASC',
         [website.id]
@@ -34,8 +50,9 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ success: true, data: websites });
   } catch (err) {
+    console.error('[/api/websites GET Error]:', err);
     return NextResponse.json(
-      { success: false, error: (err as Error).message, note: 'Ensure MySQL service is running or use client storage' },
+      { success: false, error: 'Failed to fetch websites' },
       { status: 500 }
     );
   }
@@ -43,11 +60,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const {
       id,
       slug,
-      userId,
       creatorName,
       personName,
       personNickname,
@@ -70,6 +91,33 @@ export async function POST(request: NextRequest) {
     } = body;
 
     const websiteId = id || `site-${Date.now()}`;
+    
+    // Authorization check: If updating an existing website, verify ownership
+    if (id) {
+      const existing = await query('SELECT user_id FROM birthday_websites WHERE id = ?', [id]) as any[];
+      if (existing.length > 0 && existing[0].user_id !== session.userId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
+    // Plan limit enforcement - check photo count
+    if (Array.isArray(photos)) {
+      const currentPhotoCount = id 
+        ? await query('SELECT COUNT(*) as count FROM photo_memories WHERE website_id = ?', [id]) as any[]
+        : [{ count: 0 }];
+      
+      const planId = body.planId || 'ultimate';
+      const limits = PLAN_LIMITS[planId as keyof typeof PLAN_LIMITS];
+      if (!canAddPhoto(planId as any, currentPhotoCount[0].count + photos.length)) {
+        return NextResponse.json({ 
+          error: 'Photo limit exceeded for your plan. Upgrade to add more photos.',
+          currentPhotos: currentPhotoCount[0].count,
+          requestedPhotos: photos.length,
+          limit: limits?.maxPhotos
+        }, { status: 403 });
+      }
+    }
+
     const websiteSlug = slug || generateSlug(personName);
     const expiresAt = calculateExpirationDate(planId || 'ultimate');
     
@@ -81,7 +129,7 @@ export async function POST(request: NextRequest) {
        fav_color, fav_song, fav_food, fav_place, hobbies, personality, custom_info, birthday_message, template_id,
        accent_color, font_style, bg_animation, button_style, photo_layout,
        music_id, music_title, music_artist, music_audio_url, plan_id, payment_status, payment_id, views, created_at, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', NULL, 0, NOW(), ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', NULL, 0, NOW(), ?)
       ON DUPLICATE KEY UPDATE 
       person_name = VALUES(person_name),
       birthday_message = VALUES(birthday_message),
@@ -93,8 +141,8 @@ export async function POST(request: NextRequest) {
     await query(sql, [
       websiteId,
       websiteSlug,
-      userId || 'user-demo-1',
-      creatorName || 'Aarav',
+      session.userId,
+      creatorName || session.name,
       personName,
       personNickname || null,
       personAge || 24,
@@ -136,8 +184,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Website saved successfully!', slug: websiteSlug, id: websiteId });
   } catch (err) {
+    console.error('[/api/websites POST Error]:', err);
     return NextResponse.json(
-      { success: false, error: (err as Error).message },
+      { success: false, error: 'Failed to save website' },
       { status: 500 }
     );
   }
