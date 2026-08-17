@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail } from '@/lib/mysql';
-import { verifyPassword, createSession, validateEmail, checkRateLimit } from '@/lib/auth';
+import { getUserByEmail } from '@/lib/db';
+import {
+  verifyPassword,
+  createSession,
+  validateEmail,
+  checkRateLimit,
+} from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: 10 attempts per minute per IP
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     if (!checkRateLimit(`login:${ip}`, 10, 60_000)) {
-      return NextResponse.json({ error: 'Too many login attempts. Please try again later.' }, { status: 429 });
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();
@@ -15,26 +23,40 @@ export async function POST(request: NextRequest) {
 
     // Input validation
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Email and password are required' },
+        { status: 400 }
+      );
     }
     if (!validateEmail(email)) {
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      );
     }
 
-    // Look up user
+    // Look up user in Supabase
     const user = await getUserByEmail(email.toLowerCase().trim());
     if (!user) {
-      // Use same message to prevent email enumeration
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
     }
 
     // Verify password
     if (!user.password_hash) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
     }
     const passwordValid = await verifyPassword(password, user.password_hash);
     if (!passwordValid) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
     }
 
     // Create session cookie
@@ -58,6 +80,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[/api/auth/login] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

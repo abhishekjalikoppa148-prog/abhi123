@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { query } from '@/lib/mysql';
+import { supabaseAdmin } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,13 +9,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const users = await query<any[]>(
-      'SELECT id, name, email, role, plan, plan_status, created_at FROM users ORDER BY created_at DESC LIMIT 100'
-    );
+    const { data: users, error } = await supabaseAdmin
+      .from('users')
+      .select('id, name, email, role, plan, plan_status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(100);
 
-    return NextResponse.json({ success: true, data: users });
-  } catch (error) {
+    if (error) throw error;
+
+    return NextResponse.json({ success: true, data: users || [] });
+  } catch (error: any) {
     console.error('[/api/admin/users] Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch users' },
+      { status: 500 }
+    );
   }
 }

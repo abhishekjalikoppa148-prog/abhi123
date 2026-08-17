@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/mysql';
+import { supabaseAdmin, getUserById } from '@/lib/db';
 
 const REFERRAL_CREDIT_REWARD = 5;
 const REFERRAL_CODE_LENGTH = 8;
@@ -22,42 +22,48 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    // Get user's referral code and stats
-    const users = await query('SELECT referral_code, referral_credits FROM users WHERE id = ?', [userId]) as any[];
-    
-    if (users.length === 0) {
+    // Get user from Supabase
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id, referral_code, referral_credits')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const user = users[0];
-    
     // Generate referral code if doesn't exist
     let referralCode = user.referral_code;
     if (!referralCode) {
       referralCode = generateReferralCode();
-      await query('UPDATE users SET referral_code = ? WHERE id = ?', [referralCode, userId]);
+      await supabaseAdmin
+        .from('users')
+        .update({ referral_code: referralCode })
+        .eq('id', userId);
     }
 
     // Get referral count
-    const referrals = await query(
-      'SELECT COUNT(*) as count FROM users WHERE referred_by = ?',
-      [userId]
-    ) as any[];
-    
-    const referralCount = referrals[0]?.count || 0;
+    const { count } = await supabaseAdmin
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('referred_by', userId);
 
     return NextResponse.json({
       success: true,
       data: {
         referralCode,
         referralCredits: user.referral_credits || 0,
-        referralCount,
-        creditReward: REFERRAL_CREDIT_REWARD
-      }
+        referralCount: count || 0,
+        creditReward: REFERRAL_CREDIT_REWARD,
+      },
     });
   } catch (error) {
     console.error('Referral fetch error:', error);
-    return NextResponse.json({ error: 'Failed to fetch referral data' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch referral data' },
+      { status: 500 }
+    );
   }
 }
 
@@ -66,48 +72,63 @@ export async function POST(request: NextRequest) {
     const { referralCode, userId } = await request.json();
 
     if (!referralCode || !userId) {
-      return NextResponse.json({ error: 'Referral code and user ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Referral code and user ID required' },
+        { status: 400 }
+      );
     }
 
-    // Find referrer by code
-    const referrers = await query(
-      'SELECT id, referral_credits FROM users WHERE referral_code = ?',
-      [referralCode]
-    ) as any[];
+    // Find referrer by code in Supabase
+    const { data: referrers, error: referrerError } = await supabaseAdmin
+      .from('users')
+      .select('id, referral_credits')
+      .ilike('referral_code', referralCode.trim())
+      .limit(1);
 
-    if (referrers.length === 0) {
-      return NextResponse.json({ error: 'Invalid referral code' }, { status: 400 });
+    if (referrerError || !referrers || referrers.length === 0) {
+      return NextResponse.json(
+        { error: 'Invalid referral code' },
+        { status: 400 }
+      );
     }
 
     const referrer = referrers[0];
 
     // Check if user already used a referral
-    const users = await query('SELECT referred_by FROM users WHERE id = ?', [userId]) as any[];
-    if (users.length > 0 && users[0].referred_by) {
-      return NextResponse.json({ error: 'User already used a referral code' }, { status: 400 });
+    const user = await getUserById(userId);
+    if (user && (user as any).referred_by) {
+      return NextResponse.json(
+        { error: 'User already used a referral code' },
+        { status: 400 }
+      );
     }
 
     // Update referrer credits
-    await query(
-      'UPDATE users SET referral_credits = referral_credits + ? WHERE id = ?',
-      [REFERRAL_CREDIT_REWARD, referrer.id]
-    );
+    await supabaseAdmin
+      .from('users')
+      .update({
+        referral_credits: (referrer.referral_credits || 0) + REFERRAL_CREDIT_REWARD,
+      })
+      .eq('id', referrer.id);
 
     // Mark user as referred
-    await query(
-      'UPDATE users SET referred_by = ? WHERE id = ?',
-      [referrer.id, userId]
-    );
+    await supabaseAdmin
+      .from('users')
+      .update({ referred_by: referrer.id })
+      .eq('id', userId);
 
     return NextResponse.json({
       success: true,
       data: {
         creditReward: REFERRAL_CREDIT_REWARD,
-        message: `Referral code applied! You earned ${REFERRAL_CREDIT_REWARD} credits.`
-      }
+        message: `Referral code applied! You earned ${REFERRAL_CREDIT_REWARD} credits.`,
+      },
     });
   } catch (error) {
     console.error('Referral application error:', error);
-    return NextResponse.json({ error: 'Failed to apply referral code' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to apply referral code' },
+      { status: 500 }
+    );
   }
 }

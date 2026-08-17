@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { query } from '@/lib/mysql';
+import { supabaseAdmin } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,13 +9,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const websites = await query<any[]>(
-      'SELECT * FROM birthday_websites ORDER BY created_at DESC LIMIT 100'
-    );
+    const { data: websites, error } = await supabaseAdmin
+      .from('birthday_websites')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
 
-    return NextResponse.json({ success: true, data: websites });
-  } catch (error) {
+    if (error) throw error;
+
+    return NextResponse.json({ success: true, data: websites || [] });
+  } catch (error: any) {
     console.error('[/api/admin/websites] Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch websites' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch websites' },
+      { status: 500 }
+    );
   }
 }

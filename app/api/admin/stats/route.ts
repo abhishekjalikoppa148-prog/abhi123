@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { getAdminStats } from '@/lib/mysql';
+import { getAdminStats } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,6 +14,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: stats });
   } catch (error) {
     console.error('[/api/admin/stats] Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch admin stats' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch admin stats' },
+      { status: 500 }
+    );
   }
 }

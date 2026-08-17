@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { query } from '@/lib/mysql';
+import { supabaseAdmin, getUserById } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
     const signature = request.headers.get('x-razorpay-signature');
-    
+
     if (!signature) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
     }
 
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Webhook not configured' },
+        { status: 500 }
+      );
     }
 
     // Verify signature
@@ -32,61 +35,95 @@ export async function POST(request: NextRequest) {
     // Handle payment.captured event
     if (eventType === 'payment.captured') {
       const { payment, order } = payload.payment.entity;
-      
-      const orderId = order.id;
+
+      const orderId = order?.id || payment.order_id;
       const paymentId = payment.id;
       const amount = payment.amount / 100; // Convert from paise to rupees
-      const currency = payment.currency;
-      const status = payment.status;
+      const currency = payment.currency || 'INR';
       const notes = payment.notes || {};
 
       const websiteId = notes.websiteId;
-      const planId = notes.planId;
+      const planId = notes.planId || 'ultimate';
+      const userId = notes.userId;
 
-      if (!websiteId || !planId) {
-        return NextResponse.json({ error: 'Missing notes data' }, { status: 400 });
+      if (!websiteId) {
+        return NextResponse.json(
+          { error: 'Missing websiteId in notes' },
+          { status: 400 }
+        );
       }
 
-      // Check if order already processed (idempotency)
-      const existingOrder = await query(
-        'SELECT id FROM orders WHERE razorpay_order_id = ?',
-        [orderId]
-      ) as any[];
+      // Check if order already processed (idempotency check in Supabase)
+      if (orderId) {
+        const { data: existingOrder } = await supabaseAdmin
+          .from('orders')
+          .select('id')
+          .eq('razorpay_order_id', orderId)
+          .maybeSingle();
 
-      if (existingOrder.length > 0) {
-        return NextResponse.json({ success: true, message: 'Order already processed' });
+        if (existingOrder) {
+          return NextResponse.json({
+            success: true,
+            message: 'Order already processed',
+          });
+        }
       }
 
-      // Update website payment status
-      await query(
-        'UPDATE birthday_websites SET payment_status = ?, payment_id = ? WHERE id = ?',
-        ['paid', paymentId, websiteId]
-      );
+      // Update website payment status in Supabase
+      const { data: website } = await supabaseAdmin
+        .from('birthday_websites')
+        .update({
+          payment_status: 'paid',
+          payment_id: paymentId,
+          plan_id: planId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', websiteId)
+        .select()
+        .maybeSingle();
 
-      // Create order record
-      await query(
-        `INSERT INTO orders (id, user_id, website_id, plan_id, amount, currency, status, razorpay_order_id, razorpay_payment_id, razorpay_signature, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-        [
-          `order_${Date.now()}`,
-          notes.userId,
-          websiteId,
-          planId,
-          amount,
-          currency,
-          'success',
-          orderId,
-          paymentId,
-          signature
-        ]
-      );
+      // Retrieve user info if available
+      let user = null;
+      if (userId) {
+        user = await getUserById(userId);
+      }
 
-      return NextResponse.json({ success: true, message: 'Payment processed successfully' });
+      // Create order record in Supabase
+      const dbOrderId = `ORD-${Date.now()}`;
+      await supabaseAdmin.from('orders').insert({
+        id: dbOrderId,
+        user_id: user?.id || website?.user_id || userId,
+        user_name: user?.name || website?.creator_name || 'Customer',
+        user_email: user?.email || 'customer@example.com',
+        website_id: websiteId,
+        website_slug: website?.slug || '',
+        person_name: website?.person_name || 'Celebration',
+        plan_id: planId,
+        plan_name: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan`,
+        amount: amount,
+        currency: currency,
+        payment_method: 'razorpay',
+        razorpay_order_id: orderId || null,
+        razorpay_payment_id: paymentId,
+        razorpay_signature: signature,
+        payment_id: paymentId,
+        status: 'completed',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Payment processed successfully',
+      });
     }
 
     return NextResponse.json({ success: true, message: 'Event received' });
   } catch (error) {
     console.error('Webhook error:', error);
-    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Webhook processing failed' },
+      { status: 500 }
+    );
   }
 }

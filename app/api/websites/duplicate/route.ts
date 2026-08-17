@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/mysql';
+import { supabaseAdmin, getPhotoMemories } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -15,17 +15,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Website ID required' }, { status: 400 });
     }
 
-    // Get original website data
-    const websites = await query(
-      'SELECT * FROM birthday_websites WHERE id = ?',
-      [websiteId]
-    ) as any[];
+    // Get original website data from Supabase
+    const { data: original, error: fetchError } = await supabaseAdmin
+      .from('birthday_websites')
+      .select('*')
+      .eq('id', websiteId)
+      .maybeSingle();
 
-    if (websites.length === 0) {
+    if (fetchError || !original) {
       return NextResponse.json({ error: 'Website not found' }, { status: 404 });
     }
-
-    const original = websites[0];
 
     // Verify ownership
     if (original.user_id !== session.userId && session.role !== 'admin') {
@@ -33,69 +32,65 @@ export async function POST(request: NextRequest) {
     }
 
     // Create duplicate
-    const newId = `website-${session.userId}-${Date.now()}`;
+    const newId = `site-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const newSlug = `${original.slug}-copy-${Date.now().toString().slice(-4)}`;
 
-    await query(
-      `INSERT INTO birthday_websites 
-       (id, user_id, slug, creator_name, person_name, person_nickname, person_age, relationship, birthday_date, 
-        fav_color, fav_song, fav_food, fav_place, hobbies, personality, custom_info,
-        birthday_message, template_id, accent_color, font_style, bg_animation, button_style, photo_layout,
-        music_id, music_title, music_artist, music_audio_url,
-        payment_status, plan_id, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', ?, ?, NOW())`,
-      [
-        newId,
-        session.userId,
-        newSlug,
-        original.creator_name || session.name,
-        original.person_name,
-        original.person_nickname,
-        original.person_age,
-        original.relationship,
-        original.birthday_date,
-        original.fav_color,
-        original.fav_song,
-        original.fav_food,
-        original.fav_place,
-        original.hobbies,
-        original.personality,
-        original.custom_info,
-        original.birthday_message,
-        original.template_id,
-        original.accent_color,
-        original.font_style,
-        original.bg_animation,
-        original.button_style,
-        original.photo_layout,
-        original.music_id,
-        original.music_title,
-        original.music_artist,
-        original.music_audio_url,
-        original.plan_id,
-        original.expires_at
-      ]
-    );
+    const duplicateRecord = {
+      id: newId,
+      user_id: session.userId,
+      slug: newSlug,
+      creator_name: original.creator_name || session.name,
+      person_name: original.person_name,
+      person_nickname: original.person_nickname,
+      person_age: original.person_age,
+      relationship: original.relationship,
+      birthday_date: original.birthday_date,
+      fav_color: original.fav_color,
+      fav_song: original.fav_song,
+      fav_food: original.fav_food,
+      fav_place: original.fav_place,
+      hobbies: original.hobbies,
+      personality: original.personality,
+      custom_info: original.custom_info,
+      birthday_message: original.birthday_message,
+      template_id: original.template_id,
+      accent_color: original.accent_color,
+      font_style: original.font_style,
+      bg_animation: original.bg_animation,
+      button_style: original.button_style,
+      photo_layout: original.photo_layout,
+      music_id: original.music_id,
+      music_title: original.music_title,
+      music_artist: original.music_artist,
+      music_audio_url: original.music_audio_url,
+      payment_status: 'unpaid',
+      plan_id: original.plan_id,
+      expires_at: original.expires_at,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: insertError } = await supabaseAdmin
+      .from('birthday_websites')
+      .insert(duplicateRecord);
+
+    if (insertError) throw insertError;
 
     // Duplicate photo memories
-    const photos = await query(
-      'SELECT * FROM photo_memories WHERE website_id = ?',
-      [websiteId]
-    ) as any[];
+    const photos = await getPhotoMemories(websiteId);
+    if (photos && photos.length > 0) {
+      const duplicatePhotos = photos.map((photo: any, index: number) => ({
+        id: `photo-${newId}-${index}-${Math.random().toString(36).substring(2, 6)}`,
+        website_id: newId,
+        url: photo.url,
+        caption: photo.caption,
+        memory_date: photo.memory_date,
+        memory_note: photo.memory_note,
+        sort_order: photo.sort_order || index,
+        created_at: new Date().toISOString(),
+      }));
 
-    for (const photo of photos) {
-      await query(
-        `INSERT INTO photo_memories (id, website_id, url, caption, memory_date, memory_note, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-        [
-          `photo-${newId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-          newId,
-          photo.url,
-          photo.caption,
-          photo.memory_date,
-          photo.memory_note
-        ]
-      );
+      await supabaseAdmin.from('photo_memories').insert(duplicatePhotos);
     }
 
     return NextResponse.json({
@@ -103,11 +98,14 @@ export async function POST(request: NextRequest) {
       data: {
         id: newId,
         slug: newSlug,
-        message: 'Website duplicated successfully'
-      }
+        message: 'Website duplicated successfully',
+      },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Website duplication error:', error);
-    return NextResponse.json({ error: 'Failed to duplicate website' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Failed to duplicate website' },
+      { status: 500 }
+    );
   }
 }

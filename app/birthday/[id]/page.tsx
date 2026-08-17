@@ -28,6 +28,23 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
     if (site) {
       setWebsite(site);
       incrementViews(site.id);
+      fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: site.slug }),
+      }).catch(() => {});
+    } else {
+      // Fallback: fetch directly from Supabase / API
+      fetch(`/api/websites?slug=${identifier}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.website) {
+            setWebsite(data.website);
+          } else if (data.data && data.data.length > 0) {
+            setWebsite(data.data[0]);
+          }
+        })
+        .catch((err) => console.error('Failed to load website from API:', err));
     }
   }, [identifier]);
 

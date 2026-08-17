@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { query } from '@/lib/mysql';
+import { supabaseAdmin, getUserById } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { EmailService } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,17 +14,28 @@ export async function POST(request: NextRequest) {
       razorpay_signature,
       websiteId,
       planId,
-      amount
+      amount,
     } = body;
 
-    const effectiveUserId = body.userId || session?.userId;
     if (!websiteId || !planId) {
-      return NextResponse.json({ error: 'Missing websiteId or planId' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing websiteId or planId' },
+        { status: 400 }
+      );
+    }
+
+    // Determine authenticated user
+    const authenticatedUserId = session?.userId;
+    if (!authenticatedUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Verify signature (allow sandbox verification in dev/demo)
     const secret = process.env.RAZORPAY_KEY_SECRET;
-    const isSandbox = razorpay_signature === 'sandbox_verified_signature' || !secret || secret === 'test_secret';
+    const isSandbox =
+      razorpay_signature === 'sandbox_verified_signature' ||
+      !secret ||
+      secret === 'test_secret';
 
     if (!isSandbox) {
       const generatedSignature = crypto
@@ -32,32 +44,82 @@ export async function POST(request: NextRequest) {
         .digest('hex');
 
       if (generatedSignature !== razorpay_signature) {
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Invalid signature' },
+          { status: 400 }
+        );
       }
     }
 
-    // Update website payment status
-    await query(
-      `UPDATE birthday_websites 
-       SET payment_status = 'paid', payment_id = ?, plan_id = ?, updated_at = NOW()
-       WHERE id = ?`,
-      [razorpay_payment_id || `pay_${Date.now()}`, planId, websiteId]
-    );
+    const paymentId = razorpay_payment_id || `pay_${Date.now()}`;
 
-    // Create order record
+    // Update website payment status in Supabase
+    const { data: updatedWebsite, error: websiteUpdateError } = await supabaseAdmin
+      .from('birthday_websites')
+      .update({
+        payment_status: 'paid',
+        payment_id: paymentId,
+        plan_id: planId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', websiteId)
+      .select()
+      .single();
+
+    if (websiteUpdateError) {
+      console.error('Website payment update error:', websiteUpdateError);
+      throw websiteUpdateError;
+    }
+
+    // Fetch user details for the order
+    const user = await getUserById(authenticatedUserId);
     const orderId = `ORD-${Date.now()}`;
-    const planName = planId === 'ultimate' ? 'Ultimate Plan' : planId === 'premium' ? 'Premium Plan' : 'Basic Plan';
-    const orderAmount = amount || (planId === 'ultimate' ? 999 : planId === 'premium' ? 499 : 199);
+    const planName =
+      planId === 'ultimate'
+        ? 'Ultimate Plan'
+        : planId === 'premium'
+        ? 'Premium Plan'
+        : 'Basic Plan';
+    const orderAmount =
+      amount || (planId === 'ultimate' ? 999 : planId === 'premium' ? 499 : 199);
 
-    if (effectiveUserId) {
-      await query(
-        `INSERT INTO orders 
-         (id, user_id, user_name, user_email, website_id, website_slug, person_name, plan_id, plan_name, amount, currency, payment_method, payment_id, status, created_at)
-         SELECT ?, u.id, u.name, u.email, w.id, w.slug, w.person_name, ?, ?, ?, 'INR', 'razorpay', ?, 'completed', NOW()
-         FROM users u, birthday_websites w
-         WHERE u.id = ? AND w.id = ?`,
-        [orderId, planId, planName, orderAmount, razorpay_payment_id || `pay_${Date.now()}`, effectiveUserId, websiteId]
-      );
+    if (user) {
+      // Insert order record in Supabase
+      const { error: orderInsertError } = await supabaseAdmin
+        .from('orders')
+        .insert({
+          id: orderId,
+          user_id: user.id,
+          user_name: user.name,
+          user_email: user.email,
+          website_id: updatedWebsite.id,
+          website_slug: updatedWebsite.slug,
+          person_name: updatedWebsite.person_name,
+          plan_id: planId,
+          plan_name: planName,
+          amount: orderAmount,
+          currency: 'INR',
+          payment_method: 'razorpay',
+          razorpay_order_id: razorpay_order_id || null,
+          razorpay_payment_id: razorpay_payment_id || null,
+          razorpay_signature: razorpay_signature || null,
+          payment_id: paymentId,
+          status: 'completed',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+      if (orderInsertError) {
+        console.error('Order record insert warning:', orderInsertError.message);
+      }
+
+      // Send confirmation email asynchronously
+      EmailService.sendPaymentConfirmationEmail(
+        user.email,
+        user.name,
+        orderId,
+        orderAmount
+      ).catch(() => {});
     }
 
     return NextResponse.json({
@@ -65,10 +127,10 @@ export async function POST(request: NextRequest) {
       message: 'Payment verified successfully',
       orderId,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Payment verification error:', error);
     return NextResponse.json(
-      { error: 'Failed to verify payment' },
+      { error: error.message || 'Failed to verify payment' },
       { status: 500 }
     );
   }

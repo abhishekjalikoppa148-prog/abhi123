@@ -1,59 +1,106 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { supabaseAdmin } from './supabase/admin';
 
-// Initialize S3 client
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
+const DEFAULT_MEDIA_BUCKET = process.env.SUPABASE_MEDIA_BUCKET || 'website-media';
 
-const bucketName = process.env.AWS_S3_BUCKET_NAME || '';
-
-export async function uploadToS3(
+/**
+ * Upload a file buffer to Supabase Storage.
+ * @param key File path inside the bucket (e.g. uploads/userId/timestamp-random.jpg)
+ * @param body Buffer containing the file data
+ * @param contentType MIME type of the file
+ * @param bucket Storage bucket name (defaults to 'website-media')
+ */
+export async function uploadToStorage(
   key: string,
   body: Buffer,
-  contentType: string
-): Promise<string> {
-  if (!bucketName) {
-    throw new Error('AWS_S3_BUCKET_NAME not configured');
+  contentType: string,
+  bucket: string = DEFAULT_MEDIA_BUCKET
+): Promise<{ url: string; path: string }> {
+  // If Supabase URL is available, upload to Supabase Storage
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SECRET_KEY) {
+    const { data, error } = await supabaseAdmin.storage
+      .from(bucket)
+      .upload(key, body, {
+        contentType,
+        upsert: true,
+      });
+
+    if (error) {
+      console.error('Supabase Storage Upload Error:', error.message);
+      throw new Error(`Failed to upload to Supabase Storage: ${error.message}`);
+    }
+
+    const { data: publicUrlData } = supabaseAdmin.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
+
+    return {
+      url: publicUrlData.publicUrl,
+      path: data.path,
+    };
   }
 
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: key,
-    Body: body,
-    ContentType: contentType,
-  });
+  // Fallback for local development if credentials not yet configured
+  const { writeFile, mkdir } = await import('fs/promises');
+  const { join } = await import('path');
+  const { existsSync } = await import('fs');
 
-  await s3Client.send(command);
-  
-  // Return the public URL (assuming bucket is public or using CloudFront)
-  const cloudFrontDomain = process.env.AWS_CLOUDFRONT_DOMAIN;
-  if (cloudFrontDomain) {
-    return `https://${cloudFrontDomain}/${key}`;
+  const uploadDir = join(process.cwd(), 'public', 'uploads');
+  if (!existsSync(uploadDir)) {
+    await mkdir(uploadDir, { recursive: true });
   }
-  
-  return `https://${bucketName}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
+
+  const filename = key.split('/').pop() || `${Date.now()}.png`;
+  const filepath = join(uploadDir, filename);
+  await writeFile(filepath, body);
+
+  return {
+    url: `/uploads/${filename}`,
+    path: `uploads/${filename}`,
+  };
 }
 
-export async function deleteFromS3(key: string): Promise<void> {
-  if (!bucketName) {
-    throw new Error('AWS_S3_BUCKET_NAME not configured');
+/**
+ * Delete a file from Supabase Storage.
+ */
+export async function deleteFromStorage(
+  key: string,
+  bucket: string = DEFAULT_MEDIA_BUCKET
+): Promise<void> {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SECRET_KEY) {
+    const { error } = await supabaseAdmin.storage
+      .from(bucket)
+      .remove([key]);
+
+    if (error) {
+      console.error('Supabase Storage Delete Error:', error.message);
+      throw new Error(`Failed to delete from Supabase Storage: ${error.message}`);
+    }
+    return;
   }
 
-  const command = new DeleteObjectCommand({
-    Bucket: bucketName,
-    Key: key,
-  });
-
-  await s3Client.send(command);
+  // Fallback local deletion
+  try {
+    const { unlink } = await import('fs/promises');
+    const { join } = await import('path');
+    const filename = key.split('/').pop();
+    if (filename) {
+      const filepath = join(process.cwd(), 'public', 'uploads', filename);
+      await unlink(filepath).catch(() => {});
+    }
+  } catch {}
 }
 
-export function generateS3Key(userId: string, filename: string): string {
+/**
+ * Generate a unique storage file path.
+ */
+export function generateStorageKey(userId: string, filename: string): string {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 9);
-  const extension = filename.split('.').pop();
+  const extension = filename.split('.').pop() || 'png';
   return `uploads/${userId}/${timestamp}-${random}.${extension}`;
 }
+
+// Backward-compatible alias exports for smooth migration
+export const uploadToS3 = uploadToStorage;
+export const deleteFromS3 = deleteFromStorage;
+export const generateS3Key = generateStorageKey;

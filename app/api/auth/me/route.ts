@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, destroySession, verifyPassword, hashPassword, validatePassword } from '@/lib/auth';
-import { getUserById, getUserByEmail, updateUserProfile, updateUserPassword, deleteUserAccount, query } from '@/lib/mysql';
+import {
+  getSession,
+  destroySession,
+  verifyPassword,
+  hashPassword,
+  validatePassword,
+} from '@/lib/auth';
+import {
+  getUserById,
+  updateUserProfile,
+  updateUserPassword,
+  deleteUserAccount,
+  supabaseAdmin,
+} from '@/lib/db';
 
 export async function GET() {
   try {
@@ -25,13 +37,16 @@ export async function GET() {
         plan: user.plan,
         planStatus: user.plan_status,
         planExpiresAt: user.plan_expires_at,
-        notificationsEnabled: user.notifications_enabled !== 0,
+        notificationsEnabled: user.notifications_enabled !== false,
         createdAt: user.created_at,
       },
     });
   } catch (error) {
     console.error('[/api/auth/me GET] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -43,30 +58,47 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, avatar, notificationsEnabled, currentPassword, newPassword } = body;
+    const { name, avatar, notificationsEnabled, currentPassword, newPassword } =
+      body;
 
     // Handle password change if requested
     if (newPassword) {
       if (!currentPassword) {
-        return NextResponse.json({ error: 'Current password is required to set a new password' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Current password is required to set a new password' },
+          { status: 400 }
+        );
       }
 
       const pwValidation = validatePassword(newPassword);
       if (!pwValidation.valid) {
-        return NextResponse.json({ error: pwValidation.errors[0] }, { status: 400 });
+        return NextResponse.json(
+          { error: pwValidation.errors[0] },
+          { status: 400 }
+        );
       }
 
-      // Fetch user with password_hash
-      const rows = await query<any[]>('SELECT password_hash FROM users WHERE id = ?', [session.userId]);
-      if (rows.length === 0) {
+      // Fetch user with password_hash from Supabase
+      const { data: userRecord, error: userFetchError } = await supabaseAdmin
+        .from('users')
+        .select('password_hash')
+        .eq('id', session.userId)
+        .maybeSingle();
+
+      if (userFetchError || !userRecord) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      const userRecord = rows[0];
       if (userRecord.password_hash) {
-        const isMatch = await verifyPassword(currentPassword, userRecord.password_hash);
+        const isMatch = await verifyPassword(
+          currentPassword,
+          userRecord.password_hash
+        );
         if (!isMatch) {
-          return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'Current password is incorrect' },
+            { status: 400 }
+          );
         }
       }
 
@@ -74,7 +106,7 @@ export async function PUT(request: NextRequest) {
       await updateUserPassword(session.userId, newHash);
     }
 
-    // Update profile metadata
+    // Update profile metadata in Supabase
     const updatedUser = await updateUserProfile(session.userId, {
       name: name?.trim(),
       avatar,
@@ -93,13 +125,16 @@ export async function PUT(request: NextRequest) {
         plan: updatedUser.plan,
         planStatus: updatedUser.plan_status,
         planExpiresAt: updatedUser.plan_expires_at,
-        notificationsEnabled: updatedUser.notifications_enabled !== 0,
+        notificationsEnabled: updatedUser.notifications_enabled !== false,
         createdAt: updatedUser.created_at,
       },
     });
   } catch (error) {
     console.error('[/api/auth/me PUT] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -119,6 +154,9 @@ export async function DELETE() {
     });
   } catch (error) {
     console.error('[/api/auth/me DELETE] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

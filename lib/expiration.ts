@@ -1,21 +1,22 @@
-import { query } from '@/lib/mysql';
+import { supabaseAdmin } from './supabase/admin';
 
 export async function checkWebsiteExpiry(websiteId: string): Promise<boolean> {
-  const website = await query<any[]>(
-    'SELECT expires_at, payment_status FROM birthday_websites WHERE id = ?',
-    [websiteId]
-  );
+  const { data: website } = await supabaseAdmin
+    .from('birthday_websites')
+    .select('expires_at, payment_status')
+    .eq('id', websiteId)
+    .maybeSingle();
 
-  if (website.length === 0) return false;
+  if (!website) return false;
 
-  const expiresAt = new Date(website[0].expires_at);
+  const expiresAt = new Date(website.expires_at);
   const now = new Date();
 
-  if (expiresAt < now && website[0].payment_status === 'paid') {
-    await query(
-      'UPDATE birthday_websites SET payment_status = "expired" WHERE id = ?',
-      [websiteId]
-    );
+  if (expiresAt < now && website.payment_status === 'paid') {
+    await supabaseAdmin
+      .from('birthday_websites')
+      .update({ payment_status: 'expired' })
+      .eq('id', websiteId);
     return true;
   }
 
@@ -23,21 +24,26 @@ export async function checkWebsiteExpiry(websiteId: string): Promise<boolean> {
 }
 
 export async function checkUserPlanExpiry(userId: string): Promise<boolean> {
-  const user = await query<any[]>(
-    'SELECT plan_expires_at, plan_status, plan FROM users WHERE id = ?',
-    [userId]
-  );
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('plan_expires_at, plan_status, plan')
+    .eq('id', userId)
+    .maybeSingle();
 
-  if (user.length === 0) return false;
+  if (!user || !user.plan_expires_at) return false;
 
-  const expiresAt = new Date(user[0].plan_expires_at);
+  const expiresAt = new Date(user.plan_expires_at);
   const now = new Date();
 
-  if (expiresAt < now && user[0].plan_status === 'active' && user[0].plan !== 'free') {
-    await query(
-      'UPDATE users SET plan_status = "expired", plan = "free" WHERE id = ?',
-      [userId]
-    );
+  if (
+    expiresAt < now &&
+    user.plan_status === 'active' &&
+    user.plan !== 'free'
+  ) {
+    await supabaseAdmin
+      .from('users')
+      .update({ plan_status: 'expired', plan: 'free' })
+      .eq('id', userId);
     return true;
   }
 

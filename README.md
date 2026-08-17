@@ -3,22 +3,20 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16.3.1-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.2.8-blue?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0+-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](#)
 
-A premium, full-featured commercial SaaS platform that lets anyone craft stunning, personalized birthday experience websites with AI-generated wishes, background music, interactive photo galleries, 3D interactive cakes, countdown timers, memory timelines, and custom links.
+A premium, full-featured commercial SaaS platform that lets anyone craft stunning, personalized birthday experience websites with AI-generated wishes, background music, interactive photo galleries, 3D interactive cakes, countdown timers, memory timelines, and custom links. Powered by **Supabase PostgreSQL, Supabase Auth, and Supabase Storage**.
 
 ---
 
-## 🏛️ Central Architecture & Single Source of Truth
-
-GitHub serves as the **single central source of truth** for CelebrationCraft across all development environments, IDEs, and hosting platforms.
+## 🏛️ Central Architecture & Deployment Flow
 
 ```text
                              ┌──────────────────────────────────┐
                              │        GitHub Repository         │
-                             │ https://github.com/.../repo.git │
+                             │ https://github.com/.../repo.git  │
                              └────────────────┬─────────────────┘
                                               │
                     ┌─────────────────────────┼─────────────────────────┐
@@ -43,13 +41,22 @@ GitHub serves as the **single central source of truth** for CelebrationCraft acr
                                       │    Vercel     │
                                       └───────┬───────┘
                                               │
-                                              ↓
-                                  🌍 Production SaaS Platform
+                     ┌────────────────────────┼────────────────────────┐
+                     │                        │                        │
+                     ▼                        ▼                        ▼
+              ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+              │ Supabase DB  │         │Supabase Auth │         │   Supabase   │
+              │ (PostgreSQL) │         │(Cookie / SSR)│         │   Storage    │
+              └──────────────┘         └──────────────┘         └──────────────┘
+                     │
+                     ├─────────────────► OpenAI API (Message Generation)
+                     ├─────────────────► Razorpay (Order Creation & Webhooks)
+                     └─────────────────► Resend (Transactional Emails)
 ```
 
 > [!IMPORTANT]
 > **Environment Isolation Rule:**
-> GitHub stores source code, components, API routes, database schemas, and documentation. **Secrets (`.env.local`, API keys, DB passwords, Razorpay secrets, OpenAI tokens) are NEVER committed to GitHub.** Each environment maintains its own isolated `.env.local` or Vercel Environment Variables.
+> GitHub stores source code, components, API routes, database schemas, and documentation. **Secrets (`.env.local`, Supabase keys, Razorpay secrets, OpenAI tokens) are NEVER committed to GitHub.** Each environment maintains its own isolated `.env.local` or Vercel Environment Variables.
 
 ---
 
@@ -74,8 +81,9 @@ GitHub serves as the **single central source of truth** for CelebrationCraft acr
 - **Visitor Analytics:** Live visitor counter, device breakdowns, and conversion funnel analytics.
 - **Role-Based Admin Portal:** Complete user management, revenue stats, website monitoring, and system metrics.
 
-### 🔒 Enterprise Security
-- **Server-Side Authentication:** Secure HTTP-only JWT session cookies (`cc_session`) with bcrypt password hashing (12 salt rounds).
+### 🔒 Enterprise Security & Row Level Security
+- **Server-Side Authentication:** Secure HTTP-only JWT session cookies (`cc_session`) with bcrypt password hashing (12 salt rounds) & Supabase Auth.
+- **Row Level Security (RLS):** Supabase PostgreSQL RLS policies ensuring users only access their own websites, media, orders, and analytics.
 - **IDOR Protection:** Strict ownership verification on all resource modification APIs.
 - **Rate Limiting:** Sliding-window rate limiter protecting auth, AI generation, and payment endpoints.
 - **Input Sanitization:** Deep recursive XSS and SQL injection sanitization.
@@ -92,12 +100,12 @@ GitHub serves as the **single central source of truth** for CelebrationCraft acr
 | **UI Library** | [React 19](https://react.dev/) |
 | **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) with Luxury Glassmorphism Design System |
 | **Icons & FX** | [Lucide React](https://lucide.dev/), [Canvas Confetti](https://www.npmjs.com/package/canvas-confetti) |
-| **Database** | [MySQL 8.0+](https://www.mysql.com/) via `mysql2` with connection pooling |
-| **Authentication** | Custom JWT (`jsonwebtoken`) + `bcryptjs` + HTTP-only cookies |
+| **Database** | [Supabase PostgreSQL](https://supabase.com/) via `@supabase/supabase-js` with Row Level Security |
+| **Authentication** | Supabase Auth + JWT + `bcryptjs` + HTTP-only cookies |
+| **Storage** | [Supabase Storage](https://supabase.com/storage) (`website-media` & `profile-images` buckets) |
 | **Payments** | [Razorpay SDK](https://razorpay.com/) (Orders, Verification, Webhooks) |
 | **AI Engine** | [OpenAI API](https://platform.openai.com/) (GPT-3.5 Turbo) |
-| **Email Delivery** | [Resend](https://resend.com/) / [SendGrid](https://sendgrid.com/) API |
-| **Storage** | AWS S3 / Cloudflare R2 object storage (`@aws-sdk/client-s3`) |
+| **Email Delivery** | [Resend](https://resend.com/) API |
 | **Deployment** | [Vercel](https://vercel.com/) |
 
 ---
@@ -107,7 +115,7 @@ GitHub serves as the **single central source of truth** for CelebrationCraft acr
 ### 1. Prerequisites
 - **Node.js**: v18.18.0 or higher (v20+ recommended)
 - **npm**: v9+ (or yarn / pnpm)
-- **MySQL**: 8.0+ server running locally or hosted (PlanetScale, Aiven, AWS RDS, Railway)
+- **Supabase Project**: Free tier or self-hosted Supabase instance
 - **Git**: 2.30+
 
 ### 2. Clone the Repository
@@ -127,18 +135,16 @@ Copy the `.env.example` template to `.env.local`:
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with your local credentials:
+Edit `.env.local` with your Supabase credentials:
 ```env
-# Database
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_local_password
-DB_NAME=birthday_saas
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+SUPABASE_SECRET_KEY=your-service-role-secret-key
 
 # Auth & Security
-AUTH_SECRET=your_super_secret_jwt_key_min_32_chars
 JWT_SECRET=your_super_secret_jwt_key_min_32_chars
+AUTH_SECRET=your_auth_secret
 
 # OpenAI (For AI birthday wishes)
 OPENAI_API_KEY=sk-...
@@ -157,14 +163,17 @@ EMAIL_FROM=noreply@celebrationcraft.com
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### 5. Initialize the Database
-Run the automated schema and database setup script:
+### 5. Apply Database Schema & Migrations
+In the [Supabase Dashboard](https://supabase.com/dashboard) -> **SQL Editor**, execute the migration file:
+`supabase/migrations/001_initial_schema.sql`
+
+Or seed test accounts with:
 ```bash
-node scripts/init-db.mjs
+node scripts/seed-supabase.mjs
 ```
-This executes `schema.sql`, creating tables (`users`, `birthday_websites`, `photo_memories`, `orders`, `analytics`, `password_reset_tokens`, `ai_usage`, `coupons`), indexes, and seeding default test accounts:
+Default seeded accounts:
 - **Demo User:** `test@example.com` / `Password@123`
-- **Admin User:** `admin@example.com` / `Password@123`
+- **Admin User:** `admin@celebrationcraft.com` / `Admin@123`
 
 ### 6. Run the Development Server
 ```bash
@@ -176,81 +185,18 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🧪 Testing & Verification
 
-Run the full automated end-to-end API test suite (verifies Auth, CRUD, Limits, AI, Payments, and Admin):
+Run the automated API test suite:
 ```bash
-# Start dev server first in terminal 1:
+# Start dev server first:
 npm run dev
 
-# Run automated test suite in terminal 2:
+# Run automated test suite:
 node scripts/test-all-apis.mjs
 ```
 
 Typecheck and production build verification:
 ```bash
-# TypeScript type check
-npx tsc --noEmit
-
-# Production build
 npm run build
-```
-
----
-
-## 🔄 Universal Cross-IDE Git Workflow
-
-To collaborate seamlessly across **Antigravity**, **Windsurf**, **VS Code**, and **multiple computers**, adhere to this single standard workflow:
-
-### A. Daily Workflow Routine
-1. **Always pull before starting work:**
-   ```bash
-   git pull origin main
-   ```
-2. **Make your code edits and verify:**
-   ```bash
-   git status
-   npm run build
-   ```
-3. **Stage and commit with clear, descriptive messages:**
-   ```bash
-   git add .
-   git commit -m "Add responsive layout for celebration countdown"
-   ```
-4. **Push your changes to GitHub:**
-   ```bash
-   git push origin main
-   ```
-
-### B. Setting Up on a New Machine / IDE
-```bash
-# 1. Clone the central repository
-git clone https://github.com/YOUR_USERNAME/celebrationcraft.git
-cd celebrationcraft
-
-# 2. Install dependencies
-npm install
-
-# 3. Create your local secrets (from .env.example)
-cp .env.example .env.local
-
-# 4. Start coding
-npm run dev
-```
-
-### C. Commit Message Guidelines
-Use clear, imperative commit messages:
-- ✅ `Add AI birthday message tone customization`
-- ✅ `Fix Razorpay webhook signature verification`
-- ✅ `Improve mobile responsiveness for photo gallery`
-- ❌ `update`, `changes`, `fix`, `wip`
-
-### D. Conflict Resolution
-If another machine has pushed changes:
-```bash
-git pull --rebase origin main
-# Resolve any conflict markers if prompted, then:
-git add .
-git rebase --continue
-git push origin main
 ```
 
 ---
@@ -261,20 +207,30 @@ git push origin main
 | :--- | :--- | :--- | :---: |
 | `/api/auth/signup` | `POST` | Register a new user | ❌ |
 | `/api/auth/login` | `POST` | Authenticate and issue HttpOnly JWT session | ❌ |
-| `/api/auth/me` | `GET` | Get current authenticated user profile | ✅ |
+| `/api/auth/me` | `GET`, `PUT`, `DELETE` | Get, update, or delete authenticated user profile | ✅ |
 | `/api/auth/logout` | `POST` | Clear session cookie | ✅ |
 | `/api/auth/forgot-password` | `POST` | Request password reset email | ❌ |
 | `/api/auth/reset-password` | `POST` | Reset password using verified token | ❌ |
 | `/api/websites` | `GET`, `POST` | List and create birthday websites | ✅ |
-| `/api/websites/[id]` | `GET`, `PUT`, `DELETE` | Retrieve, update, or delete a website | Optional / ✅ |
+| `/api/websites/[id]` | `GET`, `PATCH`, `DELETE` | Retrieve, update, or delete a website | Optional / ✅ |
 | `/api/websites/duplicate` | `POST` | Duplicate an existing birthday website | ✅ |
+| `/api/websites/versions` | `GET`, `POST` | Snapshot and view website version history | ✅ |
+| `/api/upload` | `POST` | Upload media to Supabase Storage | ✅ |
 | `/api/ai/generate` | `POST` | Generate AI birthday wish with OpenAI | ✅ |
+| `/api/ai/credits` | `GET`, `POST` | Check and deduct AI usage credits | ✅ |
 | `/api/payment/create-order` | `POST` | Create Razorpay order | ✅ |
 | `/api/payment/verify` | `POST` | Verify Razorpay payment signature & activate plan | ✅ |
 | `/api/payment/webhook` | `POST` | Razorpay webhook endpoint (HMAC SHA-256) | ❌ (Header signature) |
 | `/api/analytics/track` | `POST` | Record page view and interaction metrics | ❌ |
+| `/api/analytics/website` | `GET` | Fetch visitor analytics breakdown | Optional |
+| `/api/analytics/funnel` | `GET`, `POST` | Track and analyze conversion funnels | Optional |
 | `/api/admin/stats` | `GET` | Retrieve platform revenue and activity metrics | ✅ (Admin only) |
-| `/api/cron/check-expiration` | `GET` | Process subscription expirations & grace periods | Optional (Cron key) |
+| `/api/admin/users` | `GET` | View registered user list | ✅ (Admin only) |
+| `/api/admin/websites` | `GET` | View all platform websites | ✅ (Admin only) |
+| `/api/admin/orders` | `GET` | View all customer orders | ✅ (Admin only) |
+| `/api/coupons` | `POST`, `PUT` | Validate and apply discount coupons | Optional |
+| `/api/referrals` | `GET`, `POST` | Referral code management and credit rewards | Optional |
+| `/api/cron/check-expiration` | `GET`, `POST` | Process subscription expirations & grace periods | Optional (Cron key) |
 
 ---
 
@@ -286,21 +242,15 @@ git push origin main
    ```
 2. In the [Vercel Dashboard](https://vercel.com/), click **"Add New Project"** and import `celebrationcraft`.
 3. Configure the **Environment Variables** in Vercel project settings:
-   - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` (pointing to your production MySQL)
-   - `AUTH_SECRET`, `JWT_SECRET`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - `SUPABASE_SECRET_KEY`
+   - `JWT_SECRET`, `AUTH_SECRET`
    - `OPENAI_API_KEY`
    - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`
    - `RESEND_API_KEY`, `EMAIL_FROM`
    - `NEXT_PUBLIC_APP_URL` (e.g., `https://celebrationcraft.com`)
 4. Click **Deploy**. Vercel will automatically build and deploy every push to `main`.
-
----
-
-## 🛡️ Security Policy
-
-- **Never commit `.env` or `.env.local` files.**
-- If any secret is accidentally exposed, revoke and rotate it immediately.
-- Report security issues privately to `security@celebrationcraft.com`.
 
 ---
 

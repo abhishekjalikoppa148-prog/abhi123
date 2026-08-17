@@ -204,10 +204,17 @@ function BuilderContent() {
     };
   };
 
-  const handlePublishDirectly = () => {
+  const handlePublishDirectly = async () => {
     const currentUsage = getDailyUsageInfo();
     setDailyUsage(currentUsage);
     const siteObj = constructWebsiteObject();
+
+    // Persist to Supabase backend API (non-blocking / resilient)
+    fetch('/api/websites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(siteObj),
+    }).catch((err) => console.error('Failed to sync website to API:', err));
 
     if (currentUsage.isLimitReached) {
       // Free limit of 3 reached today -> Require paid plan!

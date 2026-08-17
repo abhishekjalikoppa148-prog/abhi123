@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/mysql';
-import { getDailyAILimit, calculateResetTime, shouldResetCredits } from '@/lib/ai-credits';
+import { supabaseAdmin, getUserById } from '@/lib/db';
+import {
+  getDailyAILimit,
+  calculateResetTime,
+  shouldResetCredits,
+} from '@/lib/ai-credits';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,33 +15,41 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    // Get user's plan and AI usage
-    const users = await query('SELECT plan_id FROM users WHERE id = ?', [userId]) as any[];
-    if (users.length === 0) {
+    // Get user's plan
+    const user = await getUserById(userId);
+    if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const user = users[0];
-    const planId = user.plan_id || 'basic';
+    const planId = (user.plan_id || user.plan || 'basic') as any;
 
-    // Get AI usage record
-    const usageRecords = await query(
-      'SELECT * FROM ai_usage WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
-      [userId]
-    ) as any[];
+    // Get AI usage record from Supabase
+    const { data: usageRecords, error: usageError } = await supabaseAdmin
+      .from('ai_usage')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (usageError) throw usageError;
 
     let usedToday = 0;
     let lastResetTime = calculateResetTime();
 
-    if (usageRecords.length > 0) {
+    if (usageRecords && usageRecords.length > 0) {
       const lastUsage = usageRecords[0];
-      if (shouldResetCredits(new Date(lastUsage.reset_time).getTime())) {
+      if (
+        lastUsage.reset_time &&
+        shouldResetCredits(new Date(lastUsage.reset_time).getTime())
+      ) {
         // Reset credits
         usedToday = 0;
         lastResetTime = calculateResetTime();
       } else {
-        usedToday = lastUsage.used_today;
-        lastResetTime = new Date(lastUsage.reset_time).getTime();
+        usedToday = lastUsage.used_today || 0;
+        lastResetTime = lastUsage.reset_time
+          ? new Date(lastUsage.reset_time).getTime()
+          : calculateResetTime();
       }
     }
 
@@ -51,12 +63,15 @@ export async function GET(request: NextRequest) {
         dailyLimit,
         remaining,
         resetTime: lastResetTime,
-        isUnlimited: dailyLimit >= 999
-      }
+        isUnlimited: dailyLimit >= 999,
+      },
     });
   } catch (error) {
     console.error('AI credits check error:', error);
-    return NextResponse.json({ error: 'Failed to check AI credits' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to check AI credits' },
+      { status: 500 }
+    );
   }
 }
 
@@ -68,50 +83,65 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    // Get current usage
-    const usageRecords = await query(
-      'SELECT * FROM ai_usage WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
-      [userId]
-    ) as any[];
+    // Get current usage from Supabase
+    const { data: usageRecords, error: usageError } = await supabaseAdmin
+      .from('ai_usage')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (usageError) throw usageError;
 
     let usedToday = 0;
     let recordId: string | null = null;
 
-    if (usageRecords.length > 0) {
+    if (usageRecords && usageRecords.length > 0) {
       const lastUsage = usageRecords[0];
-      if (shouldResetCredits(new Date(lastUsage.reset_time).getTime())) {
-        // Reset credits
+      if (
+        lastUsage.reset_time &&
+        shouldResetCredits(new Date(lastUsage.reset_time).getTime())
+      ) {
         usedToday = 0;
       } else {
-        usedToday = lastUsage.used_today;
+        usedToday = lastUsage.used_today || 0;
         recordId = lastUsage.id;
       }
     }
 
-    const dailyLimit = getDailyAILimit(planId || 'basic');
+    const dailyLimit = getDailyAILimit((planId || 'basic') as any);
 
     if (usedToday >= dailyLimit) {
-      return NextResponse.json({
-        success: false,
-        error: 'Daily AI credit limit reached',
-        data: { usedToday, dailyLimit, remaining: 0 }
-      }, { status: 429 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Daily AI credit limit reached',
+          data: { usedToday, dailyLimit, remaining: 0 },
+        },
+        { status: 429 }
+      );
     }
 
-    // Increment usage
+    // Increment usage in Supabase
     const newUsedToday = usedToday + 1;
-    const resetTime = new Date(calculateResetTime());
+    const resetTime = new Date(calculateResetTime()).toISOString();
 
     if (recordId) {
-      await query(
-        'UPDATE ai_usage SET used_today = ?, reset_time = ? WHERE id = ?',
-        [newUsedToday, resetTime, recordId]
-      );
+      await supabaseAdmin
+        .from('ai_usage')
+        .update({
+          used_today: newUsedToday,
+          reset_time: resetTime,
+        })
+        .eq('id', recordId);
     } else {
-      await query(
-        'INSERT INTO ai_usage (id, user_id, used_today, reset_time, created_at) VALUES (?, ?, ?, ?, NOW())',
-        [`ai-usage-${userId}-${Date.now()}`, userId, newUsedToday, resetTime]
-      );
+      await supabaseAdmin.from('ai_usage').insert({
+        id: `ai-usage-${userId}-${Date.now()}`,
+        user_id: userId,
+        used_today: newUsedToday,
+        reset_time: resetTime,
+        created_at: new Date().toISOString(),
+      });
     }
 
     return NextResponse.json({
@@ -119,11 +149,14 @@ export async function POST(request: NextRequest) {
       data: {
         usedToday: newUsedToday,
         dailyLimit,
-        remaining: dailyLimit - newUsedToday
-      }
+        remaining: dailyLimit - newUsedToday,
+      },
     });
   } catch (error) {
     console.error('AI credit deduction error:', error);
-    return NextResponse.json({ error: 'Failed to deduct AI credit' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to deduct AI credit' },
+      { status: 500 }
+    );
   }
 }

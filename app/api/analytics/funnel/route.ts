@@ -1,33 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/mysql';
+import { supabaseAdmin } from '@/lib/db';
 
-type FunnelStep = 'landing' | 'demo' | 'templates' | 'onboarding' | 'builder' | 'checkout' | 'payment' | 'success';
+type FunnelStep =
+  | 'landing'
+  | 'demo'
+  | 'templates'
+  | 'onboarding'
+  | 'builder'
+  | 'checkout'
+  | 'payment'
+  | 'success';
+
+const VALID_STEPS: FunnelStep[] = [
+  'landing',
+  'demo',
+  'templates',
+  'onboarding',
+  'builder',
+  'checkout',
+  'payment',
+  'success',
+];
 
 export async function POST(request: NextRequest) {
   try {
     const { step, userId, sessionId, metadata } = await request.json();
 
     if (!step || !sessionId) {
-      return NextResponse.json({ error: 'Step and session ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Step and session ID required' },
+        { status: 400 }
+      );
     }
 
-    const validSteps: FunnelStep[] = ['landing', 'demo', 'templates', 'onboarding', 'builder', 'checkout', 'payment', 'success'];
-    
-    if (!validSteps.includes(step)) {
+    if (!VALID_STEPS.includes(step)) {
       return NextResponse.json({ error: 'Invalid funnel step' }, { status: 400 });
     }
 
-    // Track funnel event
-    await query(
-      `INSERT INTO funnel_events (id, step, user_id, session_id, metadata, created_at)
-       VALUES (?, ?, ?, ?, ?, NOW())`,
-      [`funnel-${sessionId}-${step}-${Date.now()}`, step, userId || null, sessionId, JSON.stringify(metadata || {})]
-    );
+    // Track funnel event in Supabase
+    await supabaseAdmin.from('funnel_events').insert({
+      id: `funnel-${sessionId}-${step}-${Date.now()}`,
+      step,
+      user_id: userId || null,
+      session_id: sessionId,
+      metadata: metadata || {},
+      created_at: new Date().toISOString(),
+    });
 
-    return NextResponse.json({ success: true, message: 'Funnel event tracked' });
+    return NextResponse.json({
+      success: true,
+      message: 'Funnel event tracked',
+    });
   } catch (error) {
     console.error('Funnel tracking error:', error);
-    return NextResponse.json({ error: 'Failed to track funnel event' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to track funnel event' },
+      { status: 500 }
+    );
   }
 }
 
@@ -38,40 +67,59 @@ export async function GET(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Get funnel data
-    const funnelData = await query(
-      `SELECT step, COUNT(*) as count, 
-       COUNT(DISTINCT session_id) as unique_sessions,
-       COUNT(DISTINCT user_id) as unique_users
-       FROM funnel_events 
-       WHERE created_at >= ?
-       GROUP BY step
-       ORDER BY FIELD(step, 'landing', 'demo', 'templates', 'onboarding', 'builder', 'checkout', 'payment', 'success')`,
-      [startDate]
-    );
+    // Get funnel events from Supabase
+    const { data: events, error: eventsError } = await supabaseAdmin
+      .from('funnel_events')
+      .select('step, session_id, user_id')
+      .gte('created_at', startDate.toISOString());
 
-    // Calculate conversion rates
-    const stepOrder = ['landing', 'demo', 'templates', 'onboarding', 'builder', 'checkout', 'payment', 'success'];
-    const funnelMap = new Map();
-    
-    (funnelData as any[]).forEach(row => {
-      funnelMap.set(row.step, {
-        count: row.count,
-        uniqueSessions: row.unique_sessions,
-        uniqueUsers: row.unique_users
+    if (eventsError) throw eventsError;
+
+    const rows = events || [];
+
+    // Aggregate by step
+    const funnelMap = new Map<
+      string,
+      { count: number; sessions: Set<string>; users: Set<string> }
+    >();
+
+    VALID_STEPS.forEach((step) => {
+      funnelMap.set(step, {
+        count: 0,
+        sessions: new Set(),
+        users: new Set(),
       });
     });
 
-    const funnel = stepOrder.map(step => {
-      const data = funnelMap.get(step) || { count: 0, uniqueSessions: 0, uniqueUsers: 0 };
-      return { step, ...data };
+    rows.forEach((row: any) => {
+      const entry = funnelMap.get(row.step);
+      if (entry) {
+        entry.count++;
+        if (row.session_id) entry.sessions.add(row.session_id);
+        if (row.user_id) entry.users.add(row.user_id);
+      }
     });
 
-    // Calculate conversion rates
-    const landingSessions = funnelMap.get('landing')?.uniqueSessions || 1;
-    const funnelWithRates = funnel.map((step, index) => {
-      const rate = index === 0 ? 100 : (step.uniqueSessions / landingSessions) * 100;
-      return { ...step, conversionRate: Math.round(rate * 10) / 10 };
+    const landingSessions =
+      funnelMap.get('landing')?.sessions.size ||
+      funnelMap.get('templates')?.sessions.size ||
+      1;
+
+    const funnelWithRates = VALID_STEPS.map((step, index) => {
+      const data = funnelMap.get(step)!;
+      const uniqueSessions = data.sessions.size;
+      const rate =
+        index === 0
+          ? 100
+          : Math.min(100, (uniqueSessions / Math.max(landingSessions, 1)) * 100);
+
+      return {
+        step,
+        count: data.count,
+        uniqueSessions: uniqueSessions,
+        uniqueUsers: data.users.size,
+        conversionRate: Math.round(rate * 10) / 10,
+      };
     });
 
     return NextResponse.json({
@@ -79,11 +127,14 @@ export async function GET(request: NextRequest) {
       data: {
         funnel: funnelWithRates,
         period: `${days} days`,
-        overallConversion: funnelMap.get('success')?.unique_sessions || 0
-      }
+        overallConversion: funnelMap.get('success')?.sessions.size || 0,
+      },
     });
   } catch (error) {
     console.error('Funnel data fetch error:', error);
-    return NextResponse.json({ error: 'Failed to fetch funnel data' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch funnel data' },
+      { status: 500 }
+    );
   }
 }

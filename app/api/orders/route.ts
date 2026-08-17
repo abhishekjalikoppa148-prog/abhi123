@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { getOrdersByUserId } from '@/lib/mysql';
+import { getOrdersByUserId } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,12 +26,17 @@ export async function GET(request: NextRequest) {
       paymentMethod: r.payment_method || 'razorpay',
       paymentId: r.payment_id,
       status: r.status,
-      createdAt: r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      createdAt: r.created_at
+        ? new Date(r.created_at).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0],
     }));
 
     return NextResponse.json({ success: true, data: orders });
   } catch (error) {
     console.error('[/api/orders GET] Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch orders' },
+      { status: 500 }
+    );
   }
 }

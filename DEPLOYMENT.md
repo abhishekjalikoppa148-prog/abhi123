@@ -1,114 +1,123 @@
-# Birthday SaaS Platform - Deployment Guide
+# CelebrationCraft — Deployment Guide (Supabase + Vercel)
 
 ## Prerequisites
 
-- Node.js 18+ 
-- MySQL 8.0+
-- npm or yarn
-- Vercel account (for deployment)
+- **Node.js**: 18+ (Node 20 recommended)
+- **Supabase Account**: Free or Pro tier at [supabase.com](https://supabase.com)
+- **Vercel Account**: [vercel.com](https://vercel.com)
+- **GitHub Account**: For automated CI/CD deployments
 
-## Environment Variables
+---
 
-Create a `.env.local` file with the following variables:
+## 1. Supabase Setup
+
+### A. Create Project
+1. Log in to [Supabase](https://app.supabase.com) and click **"New Project"**.
+2. Name your project (e.g., `celebrationcraft-prod`), choose a region close to your primary audience, and set a database password.
+
+### B. Run Schema Migration
+1. Go to the **SQL Editor** in the Supabase Dashboard.
+2. Open the file `supabase/migrations/001_initial_schema.sql` from this repository.
+3. Paste the contents into the SQL Editor and click **Run**.
+4. This will create:
+   - 20+ PostgreSQL tables (`users`, `birthday_websites`, `photo_memories`, `orders`, `payments`, `invoices`, `website_analytics`, `funnel_events`, `website_versions`, `coupons`, `coupon_usages`, `ai_usage`, etc.)
+   - Row Level Security (RLS) policies
+   - Auto-updating `updated_at` triggers
+   - Storage buckets (`website-media` and `profile-images`)
+   - Default seeded admin user and sample plans
+
+### C. Retrieve API Credentials
+1. Go to **Project Settings** -> **API**.
+2. Copy:
+   - **Project URL** -> `NEXT_PUBLIC_SUPABASE_URL`
+   - **Project API Keys (anon / public)** -> `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - **Project API Keys (service_role / secret)** -> `SUPABASE_SECRET_KEY`
+
+---
+
+## 2. Environment Variables
+
+Create a `.env.local` file for local development or configure them in Vercel:
 
 ```env
-# Database
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=birthday_saas
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+SUPABASE_SECRET_KEY=your-service-role-secret-key
 
-# Razorpay (Payment Gateway)
-RAZORPAY_KEY_ID=your_key_id
-RAZORPAY_KEY_SECRET=your_key_secret
+# Authentication
+JWT_SECRET=your-secure-random-jwt-secret-min-32-chars
+AUTH_SECRET=your-auth-secret
 
-# Application
+# OpenAI (AI Birthday Wishes)
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-3.5-turbo
+
+# Razorpay (Payment Processing)
+RAZORPAY_KEY_ID=rzp_live_...
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+RAZORPAY_WEBHOOK_SECRET=your_razorpay_webhook_secret
+
+# Email Delivery (Resend)
+RESEND_API_KEY=re_...
+EMAIL_FROM=noreply@celebrationcraft.com
+
+# App URL
 NEXT_PUBLIC_APP_URL=https://your-domain.com
-ALLOWED_ORIGINS=https://your-domain.com
 ```
 
-## Database Setup
+---
 
-1. Create MySQL database:
-```sql
-CREATE DATABASE birthday_saas;
-```
+## 3. Local Development
 
-2. Run the schema:
 ```bash
-mysql -u root -p birthday_saas < schema.sql
-```
-
-## Installation
-
-1. Install dependencies:
-```bash
+# Install dependencies
 npm install
-```
 
-2. Run development server:
-```bash
+# Run dev server
 npm run dev
 ```
 
-## Production Build
+---
 
-1. Build the application:
+## 4. Production Build Verification
+
 ```bash
+# Build the application
 npm run build
-```
 
-2. Start production server:
-```bash
+# Start production server locally
 npm start
 ```
 
-## Deployment to Vercel
+---
 
-1. Push code to GitHub
-2. Import project in Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy
+## 5. Deployment to Vercel
 
-## Key Features Implemented
+1. Push your latest code to your GitHub repository:
+   ```bash
+   git push origin main
+   ```
+2. In the [Vercel Dashboard](https://vercel.com), click **"Add New Project"**.
+3. Import your GitHub repository.
+4. Add all environment variables listed above in the Vercel **Environment Variables** panel.
+5. Click **Deploy**. Vercel will automatically build and deploy.
 
-- ✅ MySQL database integration
-- ✅ Multi-step builder with live preview
-- ✅ AI personalization API
-- ✅ File upload system
-- ✅ Razorpay payment integration
-- ✅ Plan limits and expiration
-- ✅ Admin dashboard
-- ✅ Analytics tracking
-- ✅ Profile settings & order history
-- ✅ Security hardening
-- ✅ Social sharing & QR codes
-- ✅ Mobile optimization
+---
 
-## Security Notes
+## 6. Serverless Compatibility
 
-- All API routes include input validation
-- Rate limiting implemented
-- SQL injection prevention
-- XSS protection
-- CSRF token support
-- Secure headers via middleware
+CelebrationCraft uses `@supabase/supabase-js` communicating over secure, stateless HTTPS API endpoints. This architecture avoids long-lived persistent TCP connection pools inside serverless/edge functions, ensuring seamless horizontal scaling on Vercel without connection exhaustion.
 
-## Performance Optimization
+---
 
-- Image optimization via Next.js Image
-- Code splitting
-- Lazy loading
-- CSS animations optimized
-- Mobile-first responsive design
+## 7. Storage Verification
 
-## Monitoring
+Uploaded birthday images, videos, and media are stored in the Supabase Storage bucket `website-media`.
+Public URLs are generated automatically and linked to corresponding `photo_memories` records.
 
-- Analytics tracking for visitor insights
-- Admin dashboard for revenue monitoring
-- Error logging in place
-- Performance metrics available
+---
 
-## Support
+## Support & Operations
 
-For issues or questions, refer to the code documentation or contact the development team.
+For operational questions or troubleshooting, check the Supabase and Vercel dashboard logs.
