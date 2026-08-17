@@ -11,14 +11,36 @@ import InvoiceModal from '@/components/InvoiceModal';
 export default function OrdersPage() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeInvoiceOrder, setActiveInvoiceOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    if (user) {
-      setOrders(getOrders(user.id));
-    } else {
-      setOrders(getOrders());
+    async function loadOrders() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/orders');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data && json.data.length > 0) {
+            setOrders(json.data);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch remote orders, using fallback:', e);
+      } finally {
+        setLoading(false);
+      }
+
+      // Fallback
+      if (user) {
+        setOrders(getOrders(user.id));
+      } else {
+        setOrders(getOrders());
+      }
     }
+
+    loadOrders();
   }, [user]);
 
   return (

@@ -66,6 +66,42 @@ export async function updateUserPassword(userId: string, passwordHash: string) {
   );
 }
 
+export async function updateUserProfile(userId: string, updates: { name?: string; avatar?: string; notificationsEnabled?: boolean }) {
+  const fields: string[] = [];
+  const params: any[] = [];
+
+  if (updates.name !== undefined) {
+    fields.push('name = ?');
+    params.push(updates.name);
+  }
+  if (updates.avatar !== undefined) {
+    fields.push('avatar = ?');
+    params.push(updates.avatar);
+  }
+  if (updates.notificationsEnabled !== undefined) {
+    fields.push('notifications_enabled = ?');
+    params.push(updates.notificationsEnabled ? 1 : 0);
+  }
+
+  if (fields.length === 0) return getUserById(userId);
+
+  fields.push('updated_at = NOW()');
+  params.push(userId);
+
+  await query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, params);
+  return getUserById(userId);
+}
+
+export async function deleteUserAccount(userId: string) {
+  await query('DELETE FROM photo_memories WHERE website_id IN (SELECT id FROM birthday_websites WHERE user_id = ?)', [userId]);
+  await query('DELETE FROM analytics WHERE website_id IN (SELECT id FROM birthday_websites WHERE user_id = ?)', [userId]);
+  await query('DELETE FROM birthday_websites WHERE user_id = ?', [userId]);
+  await query('DELETE FROM orders WHERE user_id = ?', [userId]);
+  await query('DELETE FROM password_reset_tokens WHERE user_id = ?', [userId]);
+  await query('DELETE FROM ai_usage WHERE user_id = ?', [userId]);
+  await query('DELETE FROM users WHERE id = ?', [userId]);
+}
+
 // ─── Password reset tokens ────────────────────────────────────────────────────
 
 export async function createPasswordResetToken(userId: string, tokenHash: string, expiresAt: string) {

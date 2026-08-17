@@ -16,10 +16,11 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [notifications, setNotifications] = useState(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authUser) {
-      // router.push('/login'); // Handled by auth provider or component logic later
       return;
     }
     setUser(authUser);
@@ -31,11 +32,48 @@ export default function ProfilePage() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
-    // TODO: Implement PUT /api/auth/me to update profile in database
-    
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2500);
+    setIsUpdating(true);
+    setErrorMsg(null);
+
+    try {
+      const payload: any = {
+        name: name.trim(),
+        notificationsEnabled: notifications,
+      };
+
+      if (newPassword) {
+        if (!currentPassword) {
+          setErrorMsg('Current password is required to change your password.');
+          setIsUpdating(false);
+          return;
+        }
+        payload.currentPassword = currentPassword;
+        payload.newPassword = newPassword;
+      }
+
+      const res = await fetch('/api/auth/me', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Failed to update profile.');
+        setIsUpdating(false);
+        return;
+      }
+
+      await refreshUser();
+      setCurrentPassword('');
+      setNewPassword('');
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch {
+      setErrorMsg('Network error while updating profile. Please try again.');
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -43,9 +81,19 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (confirm('Are you sure you want to delete your account? All created birthday websites will be removed.')) {
-      // TODO: Implement DELETE /api/auth/me to delete account
-      await logout();
+    if (confirm('Are you sure you want to permanently delete your account? All your birthday websites and media will be removed.')) {
+      try {
+        const res = await fetch('/api/auth/me', { method: 'DELETE' });
+        if (res.ok) {
+          await logout();
+          router.push('/');
+        } else {
+          const data = await res.json();
+          alert(data.error || 'Failed to delete account.');
+        }
+      } catch {
+        alert('Network error while deleting account.');
+      }
     }
   };
 
@@ -68,6 +116,12 @@ export default function ProfilePage() {
       {savedSuccess && (
         <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Account profile updated successfully!
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+          {errorMsg}
         </div>
       )}
 
@@ -199,9 +253,10 @@ export default function ProfilePage() {
 
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-600 text-white font-bold text-xs shadow-lg shadow-rose-500/20"
+                disabled={isUpdating}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-600 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-rose-500/20 cursor-pointer"
               >
-                Save Profile Changes
+                {isUpdating ? 'Saving Changes...' : 'Save Profile Changes'}
               </button>
             </div>
 
