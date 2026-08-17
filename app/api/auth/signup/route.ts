@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail, createUser } from '@/lib/db';
-import {
-  hashPassword,
-  createSession,
-  validateEmail,
-  validatePassword,
-  checkRateLimit,
-} from '@/lib/auth';
+import { createUserAuth, createSession } from '@/lib/auth';
+import { validateEmail, validatePassword, checkRateLimit } from '@/lib/auth';
 import { EmailService } from '@/lib/email';
-
-function generateId(): string {
-  return `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,54 +52,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate email
-    const existing = await getUserByEmail(email.toLowerCase().trim());
-    if (existing) {
+    // Create user with Supabase Auth
+    const data = await createUserAuth(email.toLowerCase().trim(), password, name.trim(), 'user');
+    
+    if (!data.user) {
       return NextResponse.json(
-        { error: 'An account with this email already exists' },
-        { status: 409 }
+        { error: 'Failed to create account' },
+        { status: 500 }
       );
     }
 
-    // Hash password and create user in Supabase
-    const passwordHash = await hashPassword(password);
-    const userId = generateId();
-    const user = await createUser({
-      id: userId,
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
-      password_hash: passwordHash,
-      role: 'user',
-    });
+    // Get user profile from our users table (created by trigger)
+    const { supabaseAdmin } = await import('@/lib/supabase/admin');
+    const { data: userProfile } = await supabaseAdmin
+      .from('users')
+      .select('id, name, email, role, plan')
+      .eq('auth_id', data.user.id)
+      .single();
 
-    // Create secure HttpOnly session cookie
-    await createSession({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    });
+    if (!userProfile) {
+      return NextResponse.json(
+        { error: 'User profile not created' },
+        { status: 500 }
+      );
+    }
+
+    // Sign in to create session
+    await createSession(email.toLowerCase().trim(), password);
 
     // Send welcome email (non-blocking)
-    EmailService.sendWelcomeEmail(user.email, user.name).catch(() => {});
+    EmailService.sendWelcomeEmail((userProfile as any).email, (userProfile as any).name).catch(() => {});
 
     return NextResponse.json(
       {
         success: true,
         user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          plan: user.plan,
+          id: (userProfile as any).id,
+          name: (userProfile as any).name,
+          email: (userProfile as any).email,
+          role: (userProfile as any).role,
+          plan: (userProfile as any).plan,
         },
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('[/api/auth/signup] Error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }

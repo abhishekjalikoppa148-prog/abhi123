@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, getUserById } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import {
   getDailyAILimit,
   calculateResetTime,
@@ -16,12 +16,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's plan
-    const user = await getUserById(userId);
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('plan_id, plan')
+      .eq('id', userId)
+      .single();
+      
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const planId = (user.plan_id || user.plan || 'basic') as any;
+    const planId = ((user as any).plan_id || (user as any).plan || 'basic') as any;
 
     // Get AI usage record from Supabase
     const { data: usageRecords, error: usageError } = await supabaseAdmin
@@ -141,7 +146,7 @@ export async function POST(request: NextRequest) {
         used_today: newUsedToday,
         reset_time: resetTime,
         created_at: new Date().toISOString(),
-      });
+      } as any);
     }
 
     return NextResponse.json({

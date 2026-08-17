@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { supabaseAdmin, getUserById } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { hasFeatureAccess } from '@/lib/limits';
 
 export async function POST(request: NextRequest) {
@@ -21,8 +21,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has AI feature access based on their plan
-    const user = await getUserById(session.userId);
-    const userPlan = user?.plan || 'free';
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('plan')
+      .eq('id', session.userId)
+      .single();
+    
+    const userPlan = (user as any)?.plan || 'free';
 
     if (!hasFeatureAccess(userPlan as any, 'hasAI')) {
       return NextResponse.json(
@@ -93,12 +98,10 @@ export async function POST(request: NextRequest) {
       id: `ai-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       user_id: session.userId,
       website_id: websiteId || null,
-      prompt,
-      style,
-      generated_message: generatedMessage,
-      generated_at: new Date().toISOString(),
+      used_today: 1,
+      reset_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       created_at: new Date().toISOString(),
-    });
+    } as any);
 
     return NextResponse.json({ success: true, message: generatedMessage });
   } catch (error) {

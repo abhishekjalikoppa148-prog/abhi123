@@ -11,7 +11,7 @@ const ADMIN_ROUTES = ['/admin'];
 // Public routes (no auth needed)
 const PUBLIC_AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password'];
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip for Next.js internals, static assets, API routes, and birthday pages
@@ -26,7 +26,7 @@ export function proxy(request: NextRequest) {
     return addSecurityHeaders(NextResponse.next());
   }
 
-  const session = getSessionFromRequest(request);
+  const session = await getSessionFromRequest(request);
 
   // Redirect logged-in users away from auth pages
   if (PUBLIC_AUTH_ROUTES.some(r => pathname.startsWith(r))) {
@@ -43,7 +43,7 @@ export function proxy(request: NextRequest) {
       url.searchParams.set('from', pathname);
       return NextResponse.redirect(url);
     }
-    if (session.role !== 'admin') {
+    if ((session as any).role !== 'admin') {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     return addSecurityHeaders(NextResponse.next());

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, getPhotoMemories } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { generateSlug, calculateExpirationDate } from '@/lib/utils';
 import { getSession } from '@/lib/auth';
 import { canAddPhoto, PLAN_LIMITS } from '@/lib/limits';
@@ -51,8 +51,12 @@ export async function GET(request: NextRequest) {
 
     // Fetch photos for each website
     for (const website of websites) {
-      const photos = await getPhotoMemories(website.id);
-      website.photos = photos;
+      const { data: photos } = await supabaseAdmin
+        .from('photo_memories')
+        .select('*')
+        .eq('website_id', website.id)
+        .order('sort_order', { ascending: true });
+      (website as any).photos = photos || [];
     }
 
     return NextResponse.json({
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       if (existing) {
-        if (existing.user_id !== session.userId && session.role !== 'admin') {
+        if ((existing as any).user_id !== session.userId && session.role !== 'admin') {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
         existingSite = existing;
@@ -203,7 +207,7 @@ export async function POST(request: NextRequest) {
     // Upsert birthday website in Supabase
     const { error: upsertError } = await supabaseAdmin
       .from('birthday_websites')
-      .upsert(websiteRecord, { onConflict: 'id' });
+      .upsert(websiteRecord as any, { onConflict: 'id' });
 
     if (upsertError) throw upsertError;
 
@@ -227,7 +231,7 @@ export async function POST(request: NextRequest) {
 
       const { error: photoInsertError } = await supabaseAdmin
         .from('photo_memories')
-        .insert(photosToInsert);
+        .insert(photosToInsert as any);
 
       if (photoInsertError) {
         console.error('Photo memories insert warning:', photoInsertError.message);

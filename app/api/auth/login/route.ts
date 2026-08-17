@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail } from '@/lib/db';
-import {
-  verifyPassword,
-  createSession,
-  validateEmail,
-  checkRateLimit,
-} from '@/lib/auth';
+import { createSession } from '@/lib/auth';
+import { validateEmail, checkRateLimit } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,53 +30,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Look up user in Supabase
-    const user = await getUserByEmail(email.toLowerCase().trim());
-    if (!user) {
+    // Sign in with Supabase Auth
+    const data = await createSession(email.toLowerCase().trim(), password);
+    
+    if (!data.session) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    // Verify password
-    if (!user.password_hash) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
-    const passwordValid = await verifyPassword(password, user.password_hash);
-    if (!passwordValid) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
+    // Get user profile from our users table
+    const { supabaseAdmin } = await import('@/lib/supabase/admin');
+    const { data: userProfile } = await supabaseAdmin
+      .from('users')
+      .select('id, name, email, role, avatar, plan')
+      .eq('auth_id', data.session.user.id)
+      .single();
 
-    // Create session cookie
-    await createSession({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    });
+    if (!userProfile) {
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        plan: user.plan,
+        id: (userProfile as any).id,
+        name: (userProfile as any).name,
+        email: (userProfile as any).email,
+        role: (userProfile as any).role,
+        avatar: (userProfile as any).avatar,
+        plan: (userProfile as any).plan,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[/api/auth/login] Error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }

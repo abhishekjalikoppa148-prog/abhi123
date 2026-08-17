@@ -1,9 +1,8 @@
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
+import { createClient } from './supabase/server';
+import { supabaseAdmin } from './supabase/admin';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'celebrationcraft_jwt_secret_change_in_production';
 const COOKIE_NAME = 'cc_session';
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 
@@ -16,7 +15,9 @@ export interface SessionPayload {
   exp?: number;
 }
 
-// ─── Password utilities ───────────────────────────────────────────────────────
+// ─── Password utilities (legacy, for migration compatibility) ──────────────────
+
+import bcrypt from 'bcryptjs';
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
@@ -26,63 +27,108 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-// ─── JWT utilities ────────────────────────────────────────────────────────────
-
-export function signToken(payload: Omit<SessionPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: SESSION_MAX_AGE });
-}
-
-export function verifyToken(token: string): SessionPayload | null {
-  try {
-    return jwt.verify(token, JWT_SECRET) as SessionPayload;
-  } catch {
-    return null;
-  }
-}
-
-// ─── Cookie session management ────────────────────────────────────────────────
+// ─── Supabase Auth session management ─────────────────────────────────────────
 
 /**
- * Set a secure HttpOnly session cookie (server action / route handler only).
- */
-export async function createSession(payload: Omit<SessionPayload, 'iat' | 'exp'>) {
-  const token = signToken(payload);
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: SESSION_MAX_AGE,
-    path: '/',
-  });
-  return token;
-}
-
-/**
- * Get the current session from cookies (server component / route handler).
+ * Get the current session from Supabase Auth (server component / route handler).
  */
 export async function getSession(): Promise<SessionPayload | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
 
-/**
- * Destroy the session cookie.
- */
-export async function destroySession() {
-  const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  if (!session?.user) return null;
+
+  // Get user profile from our users table
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('id, name, email, role')
+    .eq('auth_id', session.user.id)
+    .single();
+
+  if (!userProfile) return null;
+
+  return {
+    userId: userProfile.id as string,
+    email: userProfile.email as string,
+    name: userProfile.name as string,
+    role: userProfile.role as 'user' | 'admin',
+  };
 }
 
 /**
  * Get session from an incoming NextRequest (for middleware and API routes).
  */
-export function getSessionFromRequest(request: NextRequest): SessionPayload | null {
-  const token = request.cookies.get(COOKIE_NAME)?.value;
-  if (!token) return null;
-  return verifyToken(token);
+export async function getSessionFromRequest(request: NextRequest): Promise<SessionPayload | null> {
+  const supabase = await createClientWithRequest(request);
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.user) return null;
+
+  // Get user profile from our users table using admin client
+  const { data: userProfile } = await supabaseAdmin
+    .from('users')
+    .select('id, name, email, role')
+    .eq('auth_id', session.user.id)
+    .single();
+
+  if (!userProfile) return null;
+
+  return {
+    userId: userProfile.id as string,
+    email: userProfile.email as string,
+    name: userProfile.name as string,
+    role: userProfile.role as 'user' | 'admin',
+  };
+}
+
+/**
+ * Create a session using Supabase Auth
+ */
+export async function createSession(email: string, password: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Destroy the session using Supabase Auth
+ */
+export async function destroySession() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+}
+
+/**
+ * Create a user using Supabase Auth
+ */
+export async function createUserAuth(email: string, password: string, name: string, role: 'user' | 'admin' = 'user') {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name,
+        role,
+      },
+    },
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+// Helper function for route handlers
+async function createClientWithRequest(request: Request) {
+  const cookieStore = cookies();
+  const token = request.headers.get('cookie') || '';
+  
+  return createClient();
 }
 
 // ─── Password reset token utilities ──────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,19 +24,19 @@ export async function POST(request: NextRequest) {
     // Increment views
     await supabaseAdmin
       .from('birthday_websites')
-      .update({ views: (website.views || 0) + 1 })
-      .eq('id', website.id);
+      .update({ views: ((website as any).views || 0) + 1 } as any)
+      .eq('id', (website as any).id);
 
     // Log detailed analytics in Supabase
     await supabaseAdmin.from('website_analytics').insert({
       id: `an-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
-      website_id: website.id,
+      website_id: (website as any).id,
       device_type: deviceType || 'unknown',
       browser: browser || 'unknown',
       country: country || null,
       referrer: referrer || null,
       visit_timestamp: new Date().toISOString(),
-    });
+    } as any);
 
     return NextResponse.json({ success: true });
   } catch (error) {

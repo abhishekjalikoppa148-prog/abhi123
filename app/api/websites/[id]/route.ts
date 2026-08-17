@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, getPhotoMemories } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getPhotoMemories } from '@/lib/supabase/db';
 import { getSession } from '@/lib/auth';
 
 export async function GET(

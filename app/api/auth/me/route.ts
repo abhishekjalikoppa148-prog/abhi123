@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  getSession,
-  destroySession,
-  verifyPassword,
-  hashPassword,
-  validatePassword,
-} from '@/lib/auth';
-import {
-  getUserById,
-  updateUserProfile,
-  updateUserPassword,
-  deleteUserAccount,
-  supabaseAdmin,
-} from '@/lib/db';
+import { getSession, destroySession } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function GET() {
   try {
@@ -21,7 +9,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const user = await getUserById(session.userId);
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('id, name, email, role, avatar, plan, plan_status, plan_expires_at, notifications_enabled, created_at')
+      .eq('id', session.userId)
+      .single();
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -29,16 +22,16 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        plan: user.plan,
-        planStatus: user.plan_status,
-        planExpiresAt: user.plan_expires_at,
-        notificationsEnabled: user.notifications_enabled !== false,
-        createdAt: user.created_at,
+        id: (user as any).id,
+        name: (user as any).name,
+        email: (user as any).email,
+        role: (user as any).role,
+        avatar: (user as any).avatar,
+        plan: (user as any).plan,
+        planStatus: (user as any).plan_status,
+        planExpiresAt: (user as any).plan_expires_at,
+        notificationsEnabled: (user as any).notifications_enabled !== false,
+        createdAt: (user as any).created_at,
       },
     });
   } catch (error) {
@@ -58,75 +51,38 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, avatar, notificationsEnabled, currentPassword, newPassword } =
-      body;
+    const { name, avatar, notificationsEnabled } = body;
 
-    // Handle password change if requested
-    if (newPassword) {
-      if (!currentPassword) {
-        return NextResponse.json(
-          { error: 'Current password is required to set a new password' },
-          { status: 400 }
-        );
-      }
+    // Update profile in Supabase
+    const { data: updatedUser, error } = await supabaseAdmin
+      .from('users')
+      .update({
+        name: name?.trim(),
+        avatar,
+        notifications_enabled: notificationsEnabled,
+      })
+      .eq('id', session.userId)
+      .select()
+      .single();
 
-      const pwValidation = validatePassword(newPassword);
-      if (!pwValidation.valid) {
-        return NextResponse.json(
-          { error: pwValidation.errors[0] },
-          { status: 400 }
-        );
-      }
-
-      // Fetch user with password_hash from Supabase
-      const { data: userRecord, error: userFetchError } = await supabaseAdmin
-        .from('users')
-        .select('password_hash')
-        .eq('id', session.userId)
-        .maybeSingle();
-
-      if (userFetchError || !userRecord) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      }
-
-      if (userRecord.password_hash) {
-        const isMatch = await verifyPassword(
-          currentPassword,
-          userRecord.password_hash
-        );
-        if (!isMatch) {
-          return NextResponse.json(
-            { error: 'Current password is incorrect' },
-            { status: 400 }
-          );
-        }
-      }
-
-      const newHash = await hashPassword(newPassword);
-      await updateUserPassword(session.userId, newHash);
+    if (error) {
+      return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
     }
-
-    // Update profile metadata in Supabase
-    const updatedUser = await updateUserProfile(session.userId, {
-      name: name?.trim(),
-      avatar,
-      notificationsEnabled,
-    });
 
     return NextResponse.json({
       success: true,
       message: 'Profile updated successfully',
       user: {
-        id: updatedUser.id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        avatar: updatedUser.avatar,
-        plan: updatedUser.plan,
-        planStatus: updatedUser.plan_status,
-        planExpiresAt: updatedUser.plan_expires_at,
-        notificationsEnabled: updatedUser.notifications_enabled !== false,
-        createdAt: updatedUser.created_at,
+        id: (updatedUser as any).id,
+        name: (updatedUser as any).name,
+        email: (updatedUser as any).email,
+        role: (updatedUser as any).role,
+        avatar: (updatedUser as any).avatar,
+        plan: (updatedUser as any).plan,
+        planStatus: (updatedUser as any).plan_status,
+        planExpiresAt: (updatedUser as any).plan_expires_at,
+        notificationsEnabled: (updatedUser as any).notifications_enabled !== false,
+        createdAt: (updatedUser as any).created_at,
       },
     });
   } catch (error) {
@@ -145,7 +101,14 @@ export async function DELETE() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    await deleteUserAccount(session.userId);
+    // Delete user profile
+    await supabaseAdmin.from('users').delete().eq('id', session.userId);
+    
+    // Delete auth user
+    const { createClient } = await import('@/lib/supabase/server');
+    const supabase = await createClient();
+    await supabase.auth.admin.deleteUser(session.userId);
+
     await destroySession();
 
     return NextResponse.json({

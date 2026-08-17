@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, getUserById } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getUserById } from '@/lib/supabase/db';
 
 const REFERRAL_CREDIT_REWARD = 5;
 const REFERRAL_CODE_LENGTH = 8;

@@ -3,4 +3,4 @@
  * All functions now safely delegate to the Supabase database access layer.
  */
 export * from './supabase/db';
-export { default } from './supabase/admin';
+export { supabaseAdmin } from './supabase/admin';

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { supabaseAdmin, getUserById } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { getSession } from '@/lib/auth';
 import { EmailService } from '@/lib/email';
 
@@ -72,7 +72,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch user details for the order
-    const user = await getUserById(authenticatedUserId);
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('id, name, email')
+      .eq('id', authenticatedUserId)
+      .single();
+
     const orderId = `ORD-${Date.now()}`;
     const planName =
       planId === 'ultimate'
@@ -89,12 +94,12 @@ export async function POST(request: NextRequest) {
         .from('orders')
         .insert({
           id: orderId,
-          user_id: user.id,
-          user_name: user.name,
-          user_email: user.email,
+          user_id: (user as any).id,
+          user_name: (user as any).name,
+          user_email: (user as any).email,
           website_id: updatedWebsite.id,
-          website_slug: updatedWebsite.slug,
-          person_name: updatedWebsite.person_name,
+          website_slug: (updatedWebsite as any).slug,
+          person_name: (updatedWebsite as any).person_name,
           plan_id: planId,
           plan_name: planName,
           amount: orderAmount,
@@ -115,8 +120,8 @@ export async function POST(request: NextRequest) {
 
       // Send confirmation email asynchronously
       EmailService.sendPaymentConfirmationEmail(
-        user.email,
-        user.name,
+        (user as any).email,
+        (user as any).name,
         orderId,
         orderAmount
       ).catch(() => {});

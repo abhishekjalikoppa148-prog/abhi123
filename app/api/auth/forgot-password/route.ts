@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail, createPasswordResetToken } from '@/lib/db';
+import { getUserByEmail, createPasswordResetToken } from '@/lib/supabase/db';
 import {
   generateResetToken,
   getResetTokenExpiry,

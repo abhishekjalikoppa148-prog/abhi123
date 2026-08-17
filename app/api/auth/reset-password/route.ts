@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getPasswordResetToken,
   deletePasswordResetToken,
-  updateUserPassword,
-} from '@/lib/db';
+} from '@/lib/supabase/db';
 import { hashPassword, hashResetToken, validatePassword } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,9 +46,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update password in Supabase
-    const newHash = await hashPassword(password);
-    await updateUserPassword(resetRecord.user_id, newHash);
+    // Get user auth_id from our users table
+    const { data: userRecord } = await supabaseAdmin
+      .from('users')
+      .select('auth_id')
+      .eq('id', (resetRecord as any).user_id)
+      .single();
+    
+    if (userRecord?.auth_id) {
+      // Update password using Supabase Auth admin API
+      const { createClient } = await import('@/lib/supabase/server');
+      const supabase = await createClient();
+      await supabase.auth.admin.updateUserById((userRecord as any).auth_id, { password: password });
+    }
 
     // Invalidate used token
     await deletePasswordResetToken(tokenHash);

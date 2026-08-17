@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, getUserById } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getUserById } from '@/lib/supabase/db';
 import { EmailService } from '@/lib/email';
 
 export async function GET(request: NextRequest) {
@@ -36,10 +37,11 @@ async function handleExpirationCheck(request: NextRequest) {
 
     if (expiredWebsites && expiredWebsites.length > 0) {
       for (const website of expiredWebsites) {
+        // Update expired websites
         await supabaseAdmin
           .from('birthday_websites')
-          .update({ payment_status: 'expired' })
-          .eq('id', website.id);
+          .update({ payment_status: 'expired' } as any)
+          .eq('id', (website as any).id);
         results.expiredWebsites++;
       }
     }
@@ -54,10 +56,11 @@ async function handleExpirationCheck(request: NextRequest) {
 
     if (expiredUsers && expiredUsers.length > 0) {
       for (const user of expiredUsers) {
+        // Update expired user plans
         await supabaseAdmin
           .from('users')
-          .update({ plan_status: 'expired', plan: 'free' })
-          .eq('id', user.id);
+          .update({ plan_status: 'expired', plan: 'free' } as any)
+          .eq('id', (user as any).id);
         results.expiredUsers++;
       }
     }
@@ -75,16 +78,16 @@ async function handleExpirationCheck(request: NextRequest) {
 
     if (expiringSoon && expiringSoon.length > 0) {
       for (const website of expiringSoon) {
-        const user = await getUserById(website.user_id);
+        const user = await getUserById((website as any).user_id);
         if (user) {
           const daysLeft = Math.ceil(
-            (new Date(website.expires_at).getTime() - now.getTime()) /
+            (new Date((website as any).expires_at).getTime() - now.getTime()) /
               (1000 * 60 * 60 * 24)
           );
           await EmailService.sendExpiringSoonEmail(
-            user.email,
-            user.name,
-            `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/birthday/${website.slug}`,
+            (user as any).email,
+            (user as any).name,
+            `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/birthday/${(website as any).slug}`,
             daysLeft
           ).catch(() => {});
           results.warningSent++;
