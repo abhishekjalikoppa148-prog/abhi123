@@ -111,7 +111,7 @@ export default function LandingPage() {
 
             <div className="space-y-2">
               <h3 className="text-3xl sm:text-5xl font-black text-white font-playfair tracking-tight">
-                HAPPY BIRTHDAY, ANANYA ❤️
+                HAPPY BIRTHDAY, ABHISHEK ❤️
               </h3>
               <p className="text-sm sm:text-base text-slate-200 max-w-lg mx-auto">
                 &ldquo;You make every single day brighter with your smile. Today is all about celebrating YOU!&rdquo;

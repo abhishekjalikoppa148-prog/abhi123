@@ -20,13 +20,18 @@ CREATE TABLE IF NOT EXISTS `users` (
   `role`                ENUM('user','admin') NOT NULL DEFAULT 'user',
   `avatar`              VARCHAR(512)  DEFAULT NULL,
   `plan`                ENUM('free','basic','premium','ultimate') NOT NULL DEFAULT 'free',
+  `plan_id`             VARCHAR(32)   DEFAULT 'free',
   `plan_status`         ENUM('active','expired','cancelled') NOT NULL DEFAULT 'active',
   `plan_expires_at`     DATETIME      DEFAULT NULL,
+  `referral_code`       VARCHAR(64)   DEFAULT NULL,
+  `referral_credits`    INT           NOT NULL DEFAULT 0,
+  `referred_by`         VARCHAR(64)   DEFAULT NULL,
   `notifications_enabled` TINYINT(1) NOT NULL DEFAULT 1,
   `created_at`          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  INDEX `idx_email` (`email`)
+  INDEX `idx_email` (`email`),
+  INDEX `idx_referral_code` (`referral_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ─────────────────────────────────────────────────────────────
@@ -139,36 +144,131 @@ CREATE TABLE IF NOT EXISTS `orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ─────────────────────────────────────────────────────────────
--- Table 6: analytics
+-- Table 6: website_analytics
 -- ─────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `analytics` (
-  `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-  `website_id`    VARCHAR(64)   NOT NULL,
-  `visitor_id`    VARCHAR(64)   DEFAULT NULL COMMENT 'anonymous fingerprint',
-  `country`       VARCHAR(64)   DEFAULT NULL,
-  `device`        VARCHAR(32)   DEFAULT NULL COMMENT 'mobile|desktop|tablet',
-  `browser`       VARCHAR(64)   DEFAULT NULL,
-  `referrer`      VARCHAR(512)  DEFAULT NULL,
-  `visited_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE IF NOT EXISTS `website_analytics` (
+  `id`              VARCHAR(64)   NOT NULL,
+  `website_id`      VARCHAR(64)   NOT NULL,
+  `device_type`     VARCHAR(32)   DEFAULT 'unknown',
+  `browser`         VARCHAR(64)   DEFAULT 'unknown',
+  `country`         VARCHAR(64)   DEFAULT NULL,
+  `referrer`        VARCHAR(512)  DEFAULT NULL,
+  `visit_timestamp` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  INDEX `idx_website` (`website_id`),
-  INDEX `idx_visited_at` (`visited_at`),
+  INDEX `idx_web_analytics_site` (`website_id`),
+  INDEX `idx_web_analytics_time` (`visit_timestamp`),
   FOREIGN KEY (`website_id`) REFERENCES `birthday_websites` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ─────────────────────────────────────────────────────────────
--- SEED: Admin user only (password: Admin@123)
--- Hash generated with bcrypt.hash('Admin@123', 12)
+-- Table 6b: funnel_events
 -- ─────────────────────────────────────────────────────────────
-INSERT IGNORE INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `plan`, `plan_status`, `created_at`, `updated_at`)
+CREATE TABLE IF NOT EXISTS `funnel_events` (
+  `id`          VARCHAR(64)   NOT NULL,
+  `step`        VARCHAR(64)   NOT NULL,
+  `user_id`     VARCHAR(64)   DEFAULT NULL,
+  `session_id`  VARCHAR(64)   NOT NULL,
+  `metadata`    JSON          DEFAULT NULL,
+  `created_at`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_funnel_step` (`step`),
+  INDEX `idx_funnel_session` (`session_id`),
+  INDEX `idx_funnel_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- Table 7: website_versions
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `website_versions` (
+  `id`              VARCHAR(64)   NOT NULL,
+  `website_id`      VARCHAR(64)   NOT NULL,
+  `version_number`  INT           NOT NULL,
+  `person_name`     VARCHAR(128)  NOT NULL,
+  `relationship`    VARCHAR(64)   NOT NULL,
+  `birthday_date`   DATE          NOT NULL,
+  `birthday_message` TEXT         NOT NULL,
+  `template_id`     VARCHAR(64)   NOT NULL,
+  `music_id`        VARCHAR(64)   DEFAULT NULL,
+  `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_version_website` (`website_id`),
+  FOREIGN KEY (`website_id`) REFERENCES `birthday_websites` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- Table 8: coupons
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `coupons` (
+  `id`              VARCHAR(64)     NOT NULL,
+  `code`            VARCHAR(64)     NOT NULL UNIQUE,
+  `discount_type`   ENUM('percentage','fixed') NOT NULL DEFAULT 'percentage',
+  `discount_value`  DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
+  `max_uses`        INT             DEFAULT NULL,
+  `used_count`      INT             NOT NULL DEFAULT 0,
+  `expires_at`      DATETIME        DEFAULT NULL,
+  `min_order_value` DECIMAL(10,2)   DEFAULT NULL,
+  `is_active`       TINYINT(1)      NOT NULL DEFAULT 1,
+  `created_at`      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_coupon_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- Table 9: coupon_usages
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `coupon_usages` (
+  `id`          VARCHAR(64)   NOT NULL,
+  `coupon_id`   VARCHAR(64)   NOT NULL,
+  `user_id`     VARCHAR(64)   NOT NULL,
+  `used_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_usage_coupon_user` (`coupon_id`, `user_id`),
+  FOREIGN KEY (`coupon_id`) REFERENCES `coupons` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- Table 10: ai_usage
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `ai_usage` (
+  `id`          VARCHAR(64)   NOT NULL,
+  `user_id`     VARCHAR(64)   NOT NULL,
+  `used_today`  INT           NOT NULL DEFAULT 0,
+  `reset_time`  DATETIME      NOT NULL,
+  `created_at`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_ai_user` (`user_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- SEED: Admin user only (password: Admin@123)
+-- ─────────────────────────────────────────────────────────────
+INSERT IGNORE INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `plan`, `plan_id`, `plan_status`, `created_at`, `updated_at`)
 VALUES (
   'user-admin-1',
   'CelebrationCraft Admin',
   'admin@celebrationcraft.com',
-  '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- placeholder hash (Admin@123)
+  '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
   'admin',
+  'ultimate',
   'ultimate',
   'active',
   NOW(),
   NOW()
 );
+
+-- SEED: Sample active coupon
+INSERT IGNORE INTO `coupons` (`id`, `code`, `discount_type`, `discount_value`, `max_uses`, `used_count`, `min_order_value`, `is_active`, `created_at`)
+VALUES (
+  'coupon-welcome-50',
+  'WELCOME50',
+  'percentage',
+  50.00,
+  1000,
+  0,
+  99.00,
+  1,
+  NOW()
+);
+

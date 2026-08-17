@@ -48,7 +48,12 @@ export async function GET(request: NextRequest) {
       website.photos = photos;
     }
     
-    return NextResponse.json({ success: true, data: websites });
+    return NextResponse.json({ 
+      success: true, 
+      data: websites, 
+      websites: websites,
+      website: slug && websites.length > 0 ? websites[0] : null 
+    });
   } catch (err) {
     console.error('[/api/websites GET Error]:', err);
     return NextResponse.json(
@@ -93,10 +98,14 @@ export async function POST(request: NextRequest) {
     const websiteId = id || `site-${Date.now()}`;
     
     // Authorization check: If updating an existing website, verify ownership
+    let existingSite: any = null;
     if (id) {
-      const existing = await query('SELECT user_id FROM birthday_websites WHERE id = ?', [id]) as any[];
-      if (existing.length > 0 && existing[0].user_id !== session.userId) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      const existing = await query('SELECT * FROM birthday_websites WHERE id = ?', [id]) as any[];
+      if (existing.length > 0) {
+        if (existing[0].user_id !== session.userId) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        existingSite = existing[0];
       }
     }
 
@@ -106,7 +115,7 @@ export async function POST(request: NextRequest) {
         ? await query('SELECT COUNT(*) as count FROM photo_memories WHERE website_id = ?', [id]) as any[]
         : [{ count: 0 }];
       
-      const planId = body.planId || 'ultimate';
+      const planId = body.planId || existingSite?.plan_id || 'ultimate';
       const limits = PLAN_LIMITS[planId as keyof typeof PLAN_LIMITS];
       if (!canAddPhoto(planId as any, currentPhotoCount[0].count + photos.length)) {
         return NextResponse.json({ 
@@ -118,10 +127,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const websiteSlug = slug || generateSlug(personName);
-    const expiresAt = calculateExpirationDate(planId || 'ultimate');
+    const websiteSlug = slug || existingSite?.slug || generateSlug(personName || existingSite?.person_name || 'Happy Birthday');
+    const expiresAt = calculateExpirationDate(planId || existingSite?.plan_id || 'ultimate');
     
-    const hobbiesStr = Array.isArray(hobbies) ? JSON.stringify(hobbies) : hobbies || '';
+    const hobbiesStr = Array.isArray(hobbies) ? JSON.stringify(hobbies) : hobbies || existingSite?.hobbies || '';
+    const initialPaymentStatus = planId === 'free' ? 'paid' : (existingSite?.payment_status || 'unpaid');
 
     const sql = `
       INSERT INTO birthday_websites 
@@ -129,7 +139,7 @@ export async function POST(request: NextRequest) {
        fav_color, fav_song, fav_food, fav_place, hobbies, personality, custom_info, birthday_message, template_id,
        accent_color, font_style, bg_animation, button_style, photo_layout,
        music_id, music_title, music_artist, music_audio_url, plan_id, payment_status, payment_id, views, created_at, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', NULL, 0, NOW(), ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, NOW(), ?)
       ON DUPLICATE KEY UPDATE 
       person_name = VALUES(person_name),
       birthday_message = VALUES(birthday_message),
@@ -142,31 +152,32 @@ export async function POST(request: NextRequest) {
       websiteId,
       websiteSlug,
       session.userId,
-      creatorName || session.name,
-      personName,
-      personNickname || null,
-      personAge || 24,
-      birthdayDate,
-      relationship || 'Best Friend',
-      favColor || '#8b5cf6',
-      favSong || null,
-      favFood || null,
-      favPlace || null,
+      creatorName || existingSite?.creator_name || session.name,
+      personName || existingSite?.person_name,
+      personNickname || existingSite?.person_nickname || null,
+      personAge || existingSite?.person_age || 24,
+      birthdayDate || existingSite?.birthday_date || new Date().toISOString().split('T')[0],
+      relationship || existingSite?.relationship || 'Best Friend',
+      favColor || existingSite?.fav_color || '#8b5cf6',
+      favSong || existingSite?.fav_song || null,
+      favFood || existingSite?.fav_food || null,
+      favPlace || existingSite?.fav_place || null,
       hobbiesStr,
-      personality || null,
-      customInfo || null,
-      birthdayMessage,
-      templateId || 'bestfriend',
-      customizations?.accentColor || '#a855f7',
-      customizations?.fontStyle || 'outfit',
-      customizations?.bgAnimation || 'confetti',
-      customizations?.buttonStyle || 'glow',
-      customizations?.photoLayout || 'polaroid',
-      music?.id || 'track-1',
-      music?.title || 'Happy Acoustic Birthday',
-      music?.artist || 'Celebration Studio',
-      music?.audioUrl || null,
-      planId || 'ultimate',
+      personality || existingSite?.personality || null,
+      customInfo || existingSite?.custom_info || null,
+      birthdayMessage || existingSite?.birthday_message || null,
+      templateId || existingSite?.template_id || 'bestfriend',
+      customizations?.accentColor || existingSite?.accent_color || '#a855f7',
+      customizations?.fontStyle || existingSite?.font_style || 'outfit',
+      customizations?.bgAnimation || existingSite?.bg_animation || 'confetti',
+      customizations?.buttonStyle || existingSite?.button_style || 'glow',
+      customizations?.photoLayout || existingSite?.photo_layout || 'polaroid',
+      music?.id || existingSite?.music_id || 'track-1',
+      music?.title || existingSite?.music_title || 'Happy Acoustic Birthday',
+      music?.artist || existingSite?.music_artist || 'Celebration Studio',
+      music?.audioUrl || existingSite?.music_audio_url || null,
+      planId || existingSite?.plan_id || 'ultimate',
+      initialPaymentStatus,
       expiresAt
     ]);
 
@@ -182,7 +193,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, message: 'Website saved successfully!', slug: websiteSlug, id: websiteId });
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Website saved successfully!', 
+      slug: websiteSlug, 
+      id: websiteId,
+      website: {
+        id: websiteId,
+        slug: websiteSlug,
+        person_name: personName || existingSite?.person_name,
+        personName: personName || existingSite?.person_name
+      }
+    }, { status: existingSite ? 200 : 201 });
   } catch (err) {
     console.error('[/api/websites POST Error]:', err);
     return NextResponse.json(
@@ -191,3 +213,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export { POST as PUT };

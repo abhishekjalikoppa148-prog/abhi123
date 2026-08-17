@@ -11,7 +11,17 @@ export interface PlanLimits {
   expirationDays: number;
 }
 
-export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
+export const PLAN_LIMITS: Record<string, PlanLimits> = {
+  free: {
+    maxPhotos: 5,
+    maxVideos: 0,
+    hasAI: false,
+    hasCustomDomain: false,
+    hasVideoUpload: false,
+    hasAdvancedAnimations: false,
+    hasQRCode: false,
+    expirationDays: 7
+  },
   basic: {
     maxPhotos: 10,
     maxVideos: 0,
@@ -44,15 +54,15 @@ export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
   }
 };
 
-export function checkPlanLimit(planId: PlanId, feature: keyof PlanLimits, currentValue: number): boolean {
-  const limits = PLAN_LIMITS[planId];
+export function checkPlanLimit(planId: string = 'basic', feature: keyof PlanLimits, currentValue: number): boolean {
+  const limits = PLAN_LIMITS[planId] || PLAN_LIMITS['basic'];
   const limit = limits[feature];
   
   if (typeof limit === 'number') {
     return currentValue < limit;
   }
   
-  return limit as boolean;
+  return Boolean(limit);
 }
 
 export function canAddPhoto(planId: PlanId, currentPhotoCount: number): boolean {
@@ -63,14 +73,15 @@ export function canAddVideo(planId: PlanId, currentVideoCount: number): boolean 
   return checkPlanLimit(planId, 'maxVideos', currentVideoCount);
 }
 
-export function hasFeatureAccess(planId: PlanId, feature: keyof PlanLimits): boolean {
-  const limits = PLAN_LIMITS[planId];
-  return limits[feature] as boolean;
+export function hasFeatureAccess(planId: string = 'basic', feature: keyof PlanLimits): boolean {
+  const limits = PLAN_LIMITS[planId] || PLAN_LIMITS['basic'];
+  return Boolean(limits[feature]);
 }
 
-export function getExpirationDate(planId: PlanId): Date {
+export function getExpirationDate(planId: string = 'basic'): Date {
   const now = new Date();
-  const days = PLAN_LIMITS[planId].expirationDays;
+  const limits = PLAN_LIMITS[planId] || PLAN_LIMITS['basic'];
+  const days = limits.expirationDays;
   now.setDate(now.getDate() + days);
   return now;
 }

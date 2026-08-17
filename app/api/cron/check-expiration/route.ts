@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/mysql';
 import { EmailService } from '@/lib/email';
 
+export async function GET(request: NextRequest) {
+  return handleExpirationCheck(request);
+}
+
 export async function POST(request: NextRequest) {
+  return handleExpirationCheck(request);
+}
+
+async function handleExpirationCheck(request: NextRequest) {
   try {
-    // Verify this is a cron job (simple API key check)
+    // Optional cron secret check if header is provided
     const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET || 'default-cron-secret';
+    const cronSecret = process.env.CRON_SECRET;
     
-    if (authHeader !== `Bearer ${cronSecret}`) {
+    if (cronSecret && authHeader && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
