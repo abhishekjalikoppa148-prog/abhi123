@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSession } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 import { validateEmail, checkRateLimit } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -30,15 +30,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sign in with Supabase Auth
-    const data = await createSession(email.toLowerCase().trim(), password);
+    // Sign in with Supabase Auth using the server client
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password,
+    });
     
-    if (!data.session) {
+    if (error || !data.session) {
+      console.error('[Login] Sign in error:', error);
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        { error: error?.message || 'Invalid email or password' },
         { status: 401 }
       );
     }
+
+    console.log('[Login] Session created successfully for:', email);
 
     // Get user profile from our users table
     const { supabaseAdmin } = await import('@/lib/supabase/admin');

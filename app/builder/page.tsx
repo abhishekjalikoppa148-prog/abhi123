@@ -140,8 +140,8 @@ function BuilderContent() {
 
   const handleGenerateAIMessage = () => {
     setIsGeneratingAI(true);
-    setTimeout(() => {
-      const generated = generateAIBirthdayWish({
+    setTimeout(async () => {
+      const generated = await generateAIBirthdayWish({
         personName,
         personNickname,
         relationship,
@@ -234,10 +234,10 @@ function BuilderContent() {
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-blue-200 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-blue-200 dark:border-[#27272A] pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Birthday Website Generator</span>
+            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Birthday Website Generator</span>
             {dailyUsage.isLimitReached ? (
               <span className="px-2.5 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-700 text-[11px] font-extrabold flex items-center gap-1">
                 ⚠️ Daily Limit Reached (3/3 Free Used)
@@ -248,7 +248,7 @@ function BuilderContent() {
               </span>
             )}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">Create Birthday Website 🎁</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1">Create Birthday Website 🎁</h1>
         </div>
 
         <div className="flex items-center gap-3">
@@ -258,7 +258,7 @@ function BuilderContent() {
             className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
               showPreview 
                 ? 'bg-blue-500 text-white' 
-                : 'bg-white border border-blue-200 text-slate-600 hover:bg-blue-50'
+                : 'bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] text-slate-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-500/10'
             }`}
           >
             <Eye className="w-4 h-4" /> {showPreview ? 'Hide Preview' : 'Live Preview'}
@@ -289,7 +289,7 @@ function BuilderContent() {
         <div className={`${showPreview ? 'lg:w-1/2' : 'w-full'} space-y-8`}>
 
       {/* Step Stepper Navigation */}
-      <div className="grid grid-cols-6 gap-2 bg-white p-2 rounded-2xl border border-blue-200 text-center text-xs font-bold shadow-sm">
+      <div className="grid grid-cols-6 gap-2 bg-white dark:bg-[#12121A] p-2 rounded-2xl border border-blue-200 dark:border-[#27272A] text-center text-xs font-bold shadow-sm dark:shadow-blue-500/10">
         {[
           { num: 1, label: 'Person', icon: UserIcon },
           { num: 2, label: 'Message', icon: Heart },
@@ -306,7 +306,7 @@ function BuilderContent() {
             <button
               key={item.num}
               onClick={() => setStep(item.num)}
-              className={`py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${isActive ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : isDone ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:text-blue-600'}`}
+              className={`py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${isActive ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : isDone ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400'}`}
             >
               <Icon className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">{item.label}</span>
@@ -317,59 +317,59 @@ function BuilderContent() {
 
       {/* STEP 1: BIRTHDAY PERSON INFORMATION */}
       {step === 1 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
-          <h2 className="text-xl font-bold text-slate-900">Step 1 — Birthday Person Details 👤</h2>
-          <p className="text-xs text-slate-600">Fill in details to personalize the birthday website experience.</p>
+        <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] shadow-sm dark:shadow-blue-500/10 space-y-6">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 1 — Birthday Person Details 👤</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-400">Fill in details to personalize the birthday website experience.</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Birthday Person Name *</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Birthday Person Name *</label>
               <input
                 type="text"
                 value={personName}
                 onChange={(e) => setPersonName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Nickname (Optional)</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nickname (Optional)</label>
               <input
                 type="text"
                 value={personNickname}
                 onChange={(e) => setPersonNickname(e.target.value)}
                 placeholder="e.g. Rohu, Anu, Champ"
-                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Turning Age</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Turning Age</label>
               <input
                 type="number"
                 value={personAge}
                 onChange={(e) => setPersonAge(parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Birthday Date</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Birthday Date</label>
               <input
                 type="date"
                 value={birthdayDate}
                 onChange={(e) => setBirthdayDate(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Your Relationship</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Your Relationship</label>
               <select
                 value={relationship}
                 onChange={(e) => setRelationship(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
               >
                 <option>Partner / Lover</option>
                 <option>Best Friend</option>
@@ -382,53 +382,53 @@ function BuilderContent() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Favorite Color</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Favorite Color</label>
               <div className="flex gap-2">
                 <input
                   type="color"
                   value={favColor}
                   onChange={(e) => setFavColor(e.target.value)}
-                  className="w-12 h-10 rounded-xl bg-white border border-blue-200 cursor-pointer"
+                  className="w-12 h-10 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] cursor-pointer"
                 />
                 <input
                   type="text"
                   value={favColor}
                   onChange={(e) => setFavColor(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Favorite Song</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Favorite Song</label>
               <input
                 type="text"
                 value={favSong}
                 onChange={(e) => setFavSong(e.target.value)}
                 placeholder="e.g. Perfect by Ed Sheeran"
-                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Favorite Food / Treat</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Favorite Food / Treat</label>
               <input
                 type="text"
                 value={favFood}
                 onChange={(e) => setFavFood(e.target.value)}
                 placeholder="e.g. Red Velvet Cake & Pizza"
-                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-semibold text-slate-700">Hobbies & Passions (Comma separated)</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Hobbies & Passions (Comma separated)</label>
               <input
                 type="text"
                 value={hobbyInput}
                 onChange={(e) => setHobbyInput(e.target.value)}
                 placeholder="e.g. Guitar, Photography, Road Trips"
-                className="w-full px-4 py-2.5 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
@@ -437,7 +437,7 @@ function BuilderContent() {
           <div className="flex justify-end pt-4">
             <button
               onClick={() => setStep(2)}
-              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25"
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25 dark:shadow-blue-500/40"
             >
               <span>Next: Write Message</span>
               <ArrowRight className="w-4 h-4" />
@@ -449,23 +449,23 @@ function BuilderContent() {
 
       {/* STEP 2: PERSONAL MESSAGE & AI GENERATOR */}
       {step === 2 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] shadow-sm dark:shadow-blue-500/10 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Step 2 — Personal Message ❤️</h2>
-              <p className="text-xs text-slate-600">Write your own message or use AI to craft the perfect wish.</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 2 — Personal Message ❤️</h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Write your own message or use AI to craft the perfect wish.</p>
             </div>
 
             {/* AI Generator Style Buttons */}
-            <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 space-y-3">
+            <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-blue-600 flex items-center gap-1">
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5 text-blue-500" /> AI Message Generator
                 </span>
                 <select
                   value={aiStyle}
                   onChange={(e) => setAiStyle(e.target.value as AIStyle)}
-                  className="px-2 py-1 rounded-lg bg-white border border-blue-200 text-slate-700 text-xs focus:border-blue-500 focus:outline-none"
+                  className="px-2 py-1 rounded-lg bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-700 dark:text-slate-200 text-xs focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
                 >
                   <option value="emotional">Emotional ❤️</option>
                   <option value="funny">Funny 😂</option>
@@ -490,25 +490,25 @@ function BuilderContent() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-700">Birthday Message Text</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Birthday Message Text</label>
             <textarea
               rows={8}
               value={birthdayMessage}
               onChange={(e) => setBirthdayMessage(e.target.value)}
-              className="w-full p-4 rounded-2xl bg-white border border-blue-200 text-slate-900 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none leading-relaxed font-sans"
+              className="w-full p-4 rounded-2xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none leading-relaxed font-sans"
             />
           </div>
 
           <div className="flex justify-between pt-4">
             <button
               onClick={() => setStep(1)}
-              className="px-6 py-3 rounded-xl bg-white border border-blue-200 text-slate-600 font-bold text-xs flex items-center gap-2 hover:bg-blue-50"
+              className="px-6 py-3 rounded-xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={() => setStep(3)}
-              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25"
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25 dark:shadow-blue-500/40"
             >
               <span>Next: Add Photos</span>
               <ArrowRight className="w-4 h-4" />
@@ -519,29 +519,29 @@ function BuilderContent() {
 
       {/* STEP 3: PHOTOS & MEMORIES */}
       {step === 3 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] shadow-sm dark:shadow-blue-500/10 space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Step 3 — Photos & Memories 📸</h2>
-            <p className="text-xs text-slate-600">Upload photos with memory captions to create photo galleries & polaroid sliders.</p>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 3 — Photos & Memories 📸</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-400">Upload photos with memory captions to create photo galleries & polaroid sliders.</p>
           </div>
 
           {/* Add Photo Input */}
-          <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 space-y-4">
-            <h3 className="text-xs font-bold text-blue-700 uppercase tracking-wider">Add Photo by Image URL</h3>
+          <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 space-y-4">
+            <h3 className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">Add Photo by Image URL</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 type="text"
                 placeholder="Image URL (https://...)"
                 value={newPhotoUrl}
                 onChange={(e) => setNewPhotoUrl(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-white border border-blue-200 text-slate-700 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="px-3 py-2 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-700 dark:text-slate-200 text-xs focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
               />
               <input
                 type="text"
                 placeholder="Caption memory note..."
                 value={newPhotoCaption}
                 onChange={(e) => setNewPhotoCaption(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-white border border-blue-200 text-slate-700 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="px-3 py-2 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-700 dark:text-slate-200 text-xs focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:outline-none"
               />
             </div>
 
@@ -556,8 +556,8 @@ function BuilderContent() {
           {/* Photos Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {photos.map((p) => (
-              <div key={p.id} className="relative rounded-2xl overflow-hidden bg-white border border-blue-200 group p-3 space-y-2 shadow-sm">
-                <div className="relative h-40 w-full rounded-xl overflow-hidden bg-blue-50">
+              <div key={p.id} className="relative rounded-2xl overflow-hidden bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] group p-3 space-y-2 shadow-sm dark:shadow-blue-500/10">
+                <div className="relative h-40 w-full rounded-xl overflow-hidden bg-blue-50 dark:bg-blue-500/10">
                   <Image src={p.url} alt={p.caption} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                   <button
                     onClick={() => handleRemovePhoto(p.id)}
@@ -566,7 +566,7 @@ function BuilderContent() {
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <p className="text-xs text-slate-900 font-semibold truncate">{p.caption}</p>
+                <p className="text-xs text-slate-900 dark:text-white font-semibold truncate">{p.caption}</p>
               </div>
             ))}
           </div>
@@ -574,13 +574,13 @@ function BuilderContent() {
           <div className="flex justify-between pt-4">
             <button
               onClick={() => setStep(2)}
-              className="px-6 py-3 rounded-xl bg-white border border-blue-200 text-slate-600 font-bold text-xs flex items-center gap-2 hover:bg-blue-50"
+              className="px-6 py-3 rounded-xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={() => setStep(4)}
-              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25"
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25 dark:shadow-blue-500/40"
             >
               <span>Next: Select Music</span>
               <ArrowRight className="w-4 h-4" />
@@ -591,10 +591,10 @@ function BuilderContent() {
 
       {/* STEP 4: MUSIC */}
       {step === 4 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] shadow-sm dark:shadow-blue-500/10 space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Step 4 — Background Music 🎵</h2>
-            <p className="text-xs text-slate-600">Select copyright-safe birthday music or upload a custom audio track.</p>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 4 — Background Music 🎵</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-400">Select copyright-safe birthday music or upload a custom audio track.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -602,19 +602,19 @@ function BuilderContent() {
               <div
                 key={track.id}
                 onClick={() => setSelectedMusicTrack(track)}
-                className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${selectedMusicTrack.id === track.id ? 'bg-blue-50 border-blue-500 text-slate-900' : 'bg-white border-blue-200 text-slate-600 hover:border-blue-300'}`}
+                className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${selectedMusicTrack.id === track.id ? 'bg-blue-50 dark:bg-blue-500/20 border-blue-500 dark:border-blue-400 text-slate-900 dark:text-white' : 'bg-white dark:bg-[#1A1A24] border-blue-200 dark:border-[#27272A] text-slate-600 dark:text-slate-300 hover:border-blue-300 dark:hover:border-blue-400'}`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-500">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-500 dark:text-blue-400">
                     <Music className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm">{track.title}</h4>
-                    <p className="text-xs text-slate-500">{track.artist}</p>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">{track.title}</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{track.artist}</p>
                   </div>
                 </div>
                 {selectedMusicTrack.id === track.id && (
-                  <Check className="w-5 h-5 text-blue-500" />
+                  <Check className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                 )}
               </div>
             ))}
@@ -623,13 +623,13 @@ function BuilderContent() {
           <div className="flex justify-between pt-4">
             <button
               onClick={() => setStep(3)}
-              className="px-6 py-3 rounded-xl bg-white border border-blue-200 text-slate-600 font-bold text-xs flex items-center gap-2 hover:bg-blue-50"
+              className="px-6 py-3 rounded-xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={() => setStep(5)}
-              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25"
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25 dark:shadow-blue-500/40"
             >
               <span>Next: Pick Template</span>
               <ArrowRight className="w-4 h-4" />
@@ -640,10 +640,10 @@ function BuilderContent() {
 
       {/* STEP 5: TEMPLATES & CUSTOMIZATION */}
       {step === 5 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] shadow-sm dark:shadow-blue-500/10 space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Step 5 — Select & Customize Template 🎨</h2>
-            <p className="text-xs text-slate-600">Pick from 8 visual themes and customize colors & typography.</p>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 5 — Select & Customize Template 🎨</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-400">Pick from 8 visual themes and customize colors & typography.</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -651,12 +651,12 @@ function BuilderContent() {
               <div
                 key={tpl.id}
                 onClick={() => setSelectedTemplateId(tpl.id)}
-                className={`p-3 rounded-2xl border cursor-pointer space-y-2 transition-all ${selectedTemplateId === tpl.id ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/50' : 'bg-white border-blue-200 hover:border-blue-300'}`}
+                className={`p-3 rounded-2xl border cursor-pointer space-y-2 transition-all ${selectedTemplateId === tpl.id ? 'bg-blue-50 dark:bg-blue-500/20 border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/50 dark:ring-blue-500/30' : 'bg-white dark:bg-[#1A1A24] border-blue-200 dark:border-[#27272A] hover:border-blue-300 dark:hover:border-blue-400'}`}
               >
                 <div className="relative h-24 w-full rounded-xl overflow-hidden">
                   <Image src={tpl.previewImage} alt={tpl.name} fill sizes="25vw" className="object-cover opacity-70" />
                 </div>
-                <h4 className="font-bold text-xs text-slate-900 text-center">{tpl.name}</h4>
+                <h4 className="font-bold text-xs text-slate-900 dark:text-white text-center">{tpl.name}</h4>
               </div>
             ))}
           </div>
@@ -664,13 +664,13 @@ function BuilderContent() {
           <div className="flex justify-between pt-4">
             <button
               onClick={() => setStep(4)}
-              className="px-6 py-3 rounded-xl bg-white border border-blue-200 text-slate-600 font-bold text-xs flex items-center gap-2 hover:bg-blue-50"
+              className="px-6 py-3 rounded-xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={() => setStep(6)}
-              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25"
+              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/25 dark:shadow-blue-500/40"
             >
               <span>Next: Preview & Publish</span>
               <ArrowRight className="w-4 h-4" />
@@ -681,28 +681,28 @@ function BuilderContent() {
 
       {/* STEP 6: PREVIEW & PUBLISH */}
       {step === 6 && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-blue-200 shadow-sm space-y-6">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] shadow-sm dark:shadow-blue-500/10 space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Step 6 — Preview & Publish 🚀</h2>
-            <p className="text-xs text-slate-600">Review your birthday website and publish it live.</p>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 6 — Preview & Publish 🚀</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-400">Review your birthday website and publish it live.</p>
           </div>
 
           {/* Free Unlocked / Daily Usage Banner */}
           {dailyUsage.isLimitReached ? (
-            <div className="p-5 rounded-2xl bg-amber-100 border border-amber-300 text-center space-y-2">
-              <span className="px-3 py-1 rounded-full bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider">
+            <div className="p-5 rounded-2xl bg-amber-100 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/40 text-center space-y-2">
+              <span className="px-3 py-1 rounded-full bg-amber-500 text-slate-950 dark:text-white font-black text-xs uppercase tracking-wider">
                 Daily Free Limit Reached (3/3 Used Today)
               </span>
-              <p className="text-xs text-amber-700 font-semibold">
+              <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">
                 You have used your 3 free website creations for today. Next creations require a paid plan starting at ₹99.
               </p>
             </div>
           ) : (
-            <div className="p-5 rounded-2xl bg-blue-100 border border-blue-300 text-center space-y-2">
+            <div className="p-5 rounded-2xl bg-blue-100 dark:bg-blue-500/20 border border-blue-300 dark:border-blue-500/40 text-center space-y-2">
               <span className="px-3 py-1 rounded-full bg-blue-500 text-white font-black text-xs uppercase tracking-wider">
                 {3 - dailyUsage.count} Free Creation{3 - dailyUsage.count === 1 ? '' : 's'} Remaining Today
               </span>
-              <p className="text-xs text-blue-700 font-semibold">
+              <p className="text-xs text-blue-700 dark:text-blue-400 font-semibold">
                 You get 3 free creations every single day! All features included: Unlimited Photos, AI Message Writer, Background Music, Fireworks & Custom Link.
               </p>
             </div>
@@ -711,13 +711,13 @@ function BuilderContent() {
           <div className="flex justify-between items-center pt-4">
             <button
               onClick={() => setStep(5)}
-              className="px-6 py-3 rounded-xl bg-white border border-blue-200 text-slate-600 font-bold text-xs flex items-center gap-2 hover:bg-blue-50"
+              className="px-6 py-3 rounded-xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={handlePublishDirectly}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/25"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/25 dark:shadow-blue-500/40"
             >
               <Rocket className="w-4 h-4" /> Publish Website Free
             </button>
@@ -744,11 +744,11 @@ function BuilderContent() {
         {showPreview && (
           <div className="lg:w-1/2">
             <div className="sticky top-4">
-              <div className="p-4 rounded-2xl bg-white border border-blue-200 shadow-sm mb-4 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-900">Live Preview</span>
-                <span className="text-[10px] text-slate-500">Updates in real-time</span>
+              <div className="p-4 rounded-2xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] shadow-sm dark:shadow-blue-500/10 mb-4 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900 dark:text-white">Live Preview</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Updates in real-time</span>
               </div>
-              <div className="rounded-3xl overflow-hidden border border-blue-200 h-[calc(100vh-200px)]">
+              <div className="rounded-3xl overflow-hidden border border-blue-200 dark:border-[#27272A] h-[calc(100vh-200px)]">
                 <BuilderPreview website={{
                   personName,
                   personNickname,

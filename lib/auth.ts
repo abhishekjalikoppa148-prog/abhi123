@@ -34,15 +34,15 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
  */
 export async function getSession(): Promise<SessionPayload | null> {
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (!session?.user) return null;
+  if (error || !user) return null;
 
   // Get user profile from our users table
   const { data: userProfile } = await supabase
     .from('users')
     .select('id, name, email, role')
-    .eq('auth_id', session.user.id)
+    .eq('auth_id', user.id)
     .single();
 
   if (!userProfile) return null;
@@ -60,15 +60,15 @@ export async function getSession(): Promise<SessionPayload | null> {
  */
 export async function getSessionFromRequest(request: NextRequest): Promise<SessionPayload | null> {
   const supabase = await createClientWithRequest(request);
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (!session?.user) return null;
+  if (error || !user) return null;
 
   // Get user profile from our users table using admin client
   const { data: userProfile } = await supabaseAdmin
     .from('users')
     .select('id, name, email, role')
-    .eq('auth_id', session.user.id)
+    .eq('auth_id', user.id)
     .single();
 
   if (!userProfile) return null;

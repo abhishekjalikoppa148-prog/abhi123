@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Offline / fallback template generator
       const { generateAIBirthdayWish } = await import('@/lib/ai-generator');
-      generatedMessage = generateAIBirthdayWish({
+      generatedMessage = await generateAIBirthdayWish({
         personName,
         relationship,
         style: style as any,

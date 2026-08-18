@@ -3,7 +3,10 @@
 import { useState, useEffect, use } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Sparkles, Heart, Gift, Share2, Music, QrCode, ArrowUpRight } from 'lucide-react';
+import {
+  Sparkles, Heart, Gift, Share2, Music, QrCode, ArrowUpRight,
+  Monitor, Smartphone,
+} from 'lucide-react';
 import { getWebsiteByIdOrSlug, incrementViews } from '@/lib/store';
 import { BirthdayWebsite } from '@/lib/types';
 import { TEMPLATES } from '@/lib/sample-data';
@@ -12,8 +15,14 @@ import Cake3D from '@/components/Cake3D';
 import ConfettiCanvas from '@/components/ConfettiCanvas';
 import AudioPlayer from '@/components/AudioPlayer';
 import QRCodeModal from '@/components/QRCodeModal';
-
 import PinkGoldTheme from '@/components/templates/PinkGoldTheme';
+
+// New merged components from celebrationcraft
+import CountdownTimer from '@/components/birthday/CountdownTimer';
+import Guestbook from '@/components/birthday/Guestbook';
+import RSVPForm from '@/components/birthday/RSVPForm';
+import PhotoGallery from '@/components/birthday/PhotoGallery';
+import GiftRegistry from '@/components/birthday/GiftRegistry';
 
 export default function BirthdayPublicPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -22,6 +31,7 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
   const [website, setWebsite] = useState<BirthdayWebsite | null>(null);
   const [isOpened, setIsOpened] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [deviceMode, setDeviceMode] = useState<'desktop' | 'mobile'>('desktop');
 
   useEffect(() => {
     const site = getWebsiteByIdOrSlug(identifier);
@@ -74,12 +84,62 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
   }
 
   const templateDef = TEMPLATES.find(t => t.id === website.templateId) || TEMPLATES[0];
+  const accent = templateDef.accent || '#f43f5e';
+
+  // Helper: is a feature enabled?
+  const feat = (key: keyof NonNullable<BirthdayWebsite['features']>) =>
+    website.features ? website.features[key] : true;
 
   return (
     <div className={`min-h-screen bg-gradient-to-b ${templateDef.bgGradient} text-white relative font-sans overflow-x-hidden selection:bg-rose-500 selection:text-white`}>
-      
+
       {/* Background audio player */}
       <AudioPlayer track={website.music} autoPlay={isOpened} />
+
+      {/* Device Mode Toggle — top bar (only visible after reveal) */}
+      {isOpened && (
+        <div className="sticky top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 px-4 py-2 flex items-center justify-between">
+          <span className="flex items-center gap-2 text-xs font-bold text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            Live Preview
+          </span>
+
+          {/* Device toggle */}
+          <div className="flex items-center bg-white/10 p-0.5 rounded-lg border border-white/20">
+            <button
+              id="view-desktop-btn"
+              onClick={() => setDeviceMode('desktop')}
+              title="Desktop view"
+              className={`p-1.5 rounded-md transition-colors ${deviceMode === 'desktop' ? 'bg-white/20 text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              <Monitor className="w-4 h-4" />
+            </button>
+            <button
+              id="view-mobile-btn"
+              onClick={() => setDeviceMode('mobile')}
+              title="Mobile preview"
+              className={`p-1.5 rounded-md transition-colors ${deviceMode === 'mobile' ? 'bg-white/20 text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              <Smartphone className="w-4 h-4" />
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShowQR(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-600 text-white text-xs font-bold transition-all"
+          >
+            <Share2 className="w-3.5 h-3.5" /> Share
+          </button>
+        </div>
+      )}
+
+      {/* Mobile frame wrapper */}
+      <div className={isOpened && deviceMode === 'mobile' ? 'py-8 bg-slate-900 min-h-screen flex items-start justify-center' : ''}>
+        <div className={
+          isOpened && deviceMode === 'mobile'
+            ? 'w-full max-w-[400px] mx-auto rounded-3xl shadow-2xl border-8 border-slate-800 overflow-hidden bg-gradient-to-b ' + templateDef.bgGradient
+            : ''
+        }>
 
       {/* Screen 1: Interactive Surprise Opening Screen */}
       {!isOpened ? (
@@ -91,23 +151,25 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
       ) : (
         /* Screen 2 & Beyond: Revealed Birthday Page */
         <div className="space-y-16 pb-20 animate-in fade-in duration-1000">
-          
+
           {/* Confetti & Particle Fireworks */}
           <ConfettiCanvas triggerOnMount={true} continuous={true} />
 
-          {/* Top Bar Floating Badge */}
-          <div className="pt-6 px-4 flex justify-between items-center max-w-2xl mx-auto">
-            <span className="px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" /> Birthday Surprise Website
-            </span>
+          {/* Top Bar Floating Badge (only in desktop mode — toolbar handles mobile) */}
+          {deviceMode === 'desktop' && (
+            <div className="pt-6 px-4 flex justify-between items-center max-w-2xl mx-auto">
+              <span className="px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" /> Birthday Surprise Website
+              </span>
 
-            <button
-              onClick={() => setShowQR(true)}
-              className="px-3.5 py-1 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-xs font-bold flex items-center gap-1.5 transition-colors"
-            >
-              <Share2 className="w-3.5 h-3.5 text-rose-300" /> Share Page
-            </button>
-          </div>
+              <button
+                onClick={() => setShowQR(true)}
+                className="px-3.5 py-1 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <Share2 className="w-3.5 h-3.5 text-rose-300" /> Share Page
+              </button>
+            </div>
+          )}
 
           {/* GRAND BIRTHDAY REVEAL HEADER */}
           <section className="text-center px-4 pt-6 space-y-6 max-w-3xl mx-auto">
@@ -149,6 +211,15 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
             </div>
           </section>
 
+          {/* ── NEW: COUNTDOWN TIMER ── */}
+          {feat('countdown') && (
+            <CountdownTimer
+              birthdayDate={website.birthdayDate}
+              personName={website.personName}
+              accent={accent}
+            />
+          )}
+
           {/* INTERACTIVE CAKE CEREMONY */}
           <section className="max-w-2xl mx-auto px-4 text-center space-y-4">
             <div className="p-6 sm:p-10 rounded-3xl bg-slate-950/60 backdrop-blur-xl border border-white/15 shadow-2xl">
@@ -164,7 +235,7 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
           <section className="max-w-2xl mx-auto px-4">
             <div className="p-8 sm:p-12 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl space-y-6 relative overflow-hidden">
               <div className="absolute top-4 right-4 text-rose-300 opacity-30 text-5xl">💖</div>
-              
+
               <div className="flex items-center gap-2 text-rose-300 text-xs font-extrabold uppercase tracking-wider">
                 <Heart className="w-4 h-4 fill-rose-300" /> A Special Message For You
               </div>
@@ -179,7 +250,7 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
             </div>
           </section>
 
-          {/* MEMORIES GALLERY */}
+          {/* MEMORIES GALLERY (owner photos) */}
           {website.photos && website.photos.length > 0 && (
             <section className="max-w-4xl mx-auto px-4 space-y-8">
               <div className="text-center space-y-2">
@@ -189,14 +260,14 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {website.photos.map((photo) => (
-                  <div 
+                  <div
                     key={photo.id}
                     className="p-3 bg-white rounded-2xl shadow-2xl transform hover:rotate-1 transition-transform duration-300 text-slate-900 space-y-3"
                   >
                     <div className="relative h-56 w-full rounded-xl overflow-hidden bg-slate-100">
                       <Image
                         src={photo.url}
-                        alt={photo.caption}
+                        alt={photo.caption || 'Memory'}
                         fill
                         sizes="(max-width: 768px) 100vw, 33vw"
                         className="object-cover"
@@ -214,6 +285,45 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
             </section>
           )}
 
+          {/* ── NEW: ENHANCED PHOTO GALLERY (guest submissions) ── */}
+          {feat('photoGallery') && (
+            <PhotoGallery
+              websiteId={website.id}
+              personName={website.personName}
+              accent={accent}
+              ownerPhotos={website.photos}
+            />
+          )}
+
+          {/* ── NEW: GIFT REGISTRY ── */}
+          {feat('giftRegistry') && website.giftLinks && website.giftLinks.length > 0 && (
+            <GiftRegistry
+              websiteId={website.id}
+              personName={website.personName}
+              accent={accent}
+              initialLinks={website.giftLinks}
+            />
+          )}
+
+          {/* ── NEW: RSVP FORM ── */}
+          {feat('rsvp') && (
+            <RSVPForm
+              websiteId={website.id}
+              personName={website.personName}
+              eventDate={website.birthdayDate}
+              accent={accent}
+            />
+          )}
+
+          {/* ── NEW: GUESTBOOK ── */}
+          {feat('guestbook') && (
+            <Guestbook
+              websiteId={website.id}
+              personName={website.personName}
+              accent={accent}
+            />
+          )}
+
           {/* FINAL HEARTFELT MESSAGE */}
           <section className="max-w-2xl mx-auto px-4 text-center space-y-6 pt-6">
             <div className="p-8 rounded-3xl bg-slate-950/80 border border-white/15 shadow-2xl space-y-4">
@@ -221,7 +331,7 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
               <p className="text-sm text-slate-300 leading-relaxed max-w-md mx-auto">
                 &ldquo;May your life be filled with happiness, success, love, and beautiful memories that last forever.&rdquo;
               </p>
-              
+
               <div className="pt-4 flex items-center justify-center gap-3">
                 <button
                   onClick={() => setShowQR(true)}
@@ -246,6 +356,9 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
 
         </div>
       )}
+
+        </div>
+      </div>
 
       {/* Share & QR Modal */}
       {showQR && (

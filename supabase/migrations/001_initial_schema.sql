@@ -342,3 +342,114 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ─────────────────────────────────────────────────────────────
+-- Table 12: guestbook_entries (from celebrationcraft merge)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.guestbook_entries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  website_id UUID NOT NULL REFERENCES public.birthday_websites(id) ON DELETE CASCADE,
+  author_name TEXT NOT NULL,
+  relationship TEXT,
+  message TEXT NOT NULL,
+  sticker TEXT,
+  likes INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_guestbook_entries_website_id ON public.guestbook_entries(website_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- Table 13: rsvp_entries (from celebrationcraft merge)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.rsvp_entries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  website_id UUID NOT NULL REFERENCES public.birthday_websites(id) ON DELETE CASCADE,
+  guest_name TEXT NOT NULL,
+  email TEXT,
+  status TEXT NOT NULL DEFAULT 'attending' CHECK (status IN ('attending', 'declined', 'maybe')),
+  party_size INTEGER NOT NULL DEFAULT 1,
+  dietary_restrictions TEXT,
+  wishes_note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rsvp_entries_website_id ON public.rsvp_entries(website_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- Table 14: gift_registry (from celebrationcraft merge)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.gift_registry (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  website_id UUID NOT NULL REFERENCES public.birthday_websites(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  icon TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_gift_registry_website_id ON public.gift_registry(website_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- Enable RLS on new tables
+-- ─────────────────────────────────────────────────────────────
+ALTER TABLE public.guestbook_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rsvp_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gift_registry ENABLE ROW LEVEL SECURITY;
+
+-- Guestbook entries inherit from websites
+CREATE POLICY "Users can view own guestbook entries" ON public.guestbook_entries
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.birthday_websites 
+      WHERE birthday_websites.id = guestbook_entries.website_id
+      AND birthday_websites.user_id::text = (SELECT id::text FROM public.users WHERE auth_id = auth.uid())
+    )
+  );
+
+CREATE POLICY "Users can insert own guestbook entries" ON public.guestbook_entries
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.birthday_websites 
+      WHERE birthday_websites.id = guestbook_entries.website_id
+      AND birthday_websites.user_id::text = (SELECT id::text FROM public.users WHERE auth_id = auth.uid())
+    )
+  );
+
+-- RSVP entries inherit from websites
+CREATE POLICY "Users can view own rsvp entries" ON public.rsvp_entries
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.birthday_websites 
+      WHERE birthday_websites.id = rsvp_entries.website_id
+      AND birthday_websites.user_id::text = (SELECT id::text FROM public.users WHERE auth_id = auth.uid())
+    )
+  );
+
+CREATE POLICY "Users can insert own rsvp entries" ON public.rsvp_entries
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.birthday_websites 
+      WHERE birthday_websites.id = rsvp_entries.website_id
+      AND birthday_websites.user_id::text = (SELECT id::text FROM public.users WHERE auth_id = auth.uid())
+    )
+  );
+
+-- Gift registry inherits from websites
+CREATE POLICY "Users can view own gift registry" ON public.gift_registry
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.birthday_websites 
+      WHERE birthday_websites.id = gift_registry.website_id
+      AND birthday_websites.user_id::text = (SELECT id::text FROM public.users WHERE auth_id = auth.uid())
+    )
+  );
+
+CREATE POLICY "Users can insert own gift registry" ON public.gift_registry
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.birthday_websites 
+      WHERE birthday_websites.id = gift_registry.website_id
+      AND birthday_websites.user_id::text = (SELECT id::text FROM public.users WHERE auth_id = auth.uid())
+    )
+  );

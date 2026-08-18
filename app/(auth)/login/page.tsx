@@ -60,12 +60,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-blue-50 to-white">
-      <div className="w-full max-w-md space-y-8 p-8 rounded-3xl bg-white border border-blue-200 shadow-lg backdrop-blur-xl">
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-blue-50 to-white dark:from-[#0A0A0F] dark:to-[#12121A] transition-colors duration-300">
+      <div className="w-full max-w-md space-y-8 p-8 rounded-3xl bg-white dark:bg-[#12121A] border border-blue-200 dark:border-[#27272A] shadow-lg dark:shadow-blue-500/10 backdrop-blur-xl transition-colors duration-300">
         
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-blue-500/20 mx-auto mb-3 border border-blue-200 bg-white p-1">
+          <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-blue-500/20 dark:shadow-blue-500/30 mx-auto mb-3 border border-blue-200 dark:border-[#27272A] bg-white dark:bg-[#1A1A24] p-1">
             <Image
               src="/logo.png"
               alt="Logo"
@@ -74,51 +74,51 @@ export default function LoginPage() {
               className="w-full h-full object-contain rounded-xl"
             />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Welcome Back 🎂</h1>
-          <p className="text-xs sm:text-sm text-slate-600">Sign in to manage your birthday surprises.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">Welcome Back 🎂</h1>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Sign in to manage your birthday surprises.</p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleLoginSubmit} className="space-y-5">
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold">
+            <div className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-xs font-semibold">
               {error}
             </div>
           )}
 
           {/* Email */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Email Address</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 name="email"
                 required
                 defaultValue="abhishek@example.com"
                 placeholder="name@example.com"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 transition-colors"
               />
             </div>
           </div>
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Password</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 required
                 defaultValue="password123"
                 placeholder="••••••••"
-                className="w-full pl-10 pr-11 py-3 rounded-xl bg-white border border-blue-200 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
+                className="w-full pl-10 pr-11 py-3 rounded-xl bg-white dark:bg-[#1A1A24] border border-blue-200 dark:border-[#27272A] text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 transition-colors"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-600"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -127,7 +127,7 @@ export default function LoginPage() {
 
           {/* Remember me & Forgot Password */}
           <div className="flex items-center justify-between text-xs">
-            <label className="flex items-center gap-2 cursor-pointer text-slate-600 hover:text-slate-800">
+            <label className="flex items-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
               <input
                 type="checkbox"
                 checked={rememberMe}
@@ -137,7 +137,7 @@ export default function LoginPage() {
               <span>Remember me</span>
             </label>
 
-            <Link href="/forgot-password" className="text-blue-600 hover:text-blue-700 font-semibold">
+            <Link href="/forgot-password" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold">
               Forgot Password?
             </Link>
           </div>
@@ -146,7 +146,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-extrabold text-sm shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-extrabold text-sm shadow-lg shadow-blue-500/25 dark:shadow-blue-500/40 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <span>Login</span>
             <ArrowRight className="w-4 h-4" />
@@ -156,14 +156,14 @@ export default function LoginPage() {
         {/* Social Login */}
         <div className="space-y-4">
           <div className="relative flex items-center justify-center">
-            <div className="border-t border-blue-200 w-full" />
-            <span className="bg-white px-3 text-[11px] text-slate-500 font-semibold uppercase">Or</span>
+            <div className="border-t border-blue-200 dark:border-[#27272A] w-full" />
+            <span className="bg-white dark:bg-[#12121A] px-3 text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase">Or</span>
           </div>
 
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="w-full py-3 rounded-xl bg-white hover:bg-blue-50 border border-blue-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            className="w-full py-3 rounded-xl bg-white dark:bg-[#1A1A24] hover:bg-blue-50 dark:hover:bg-blue-500/10 border border-blue-200 dark:border-[#27272A] text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -176,9 +176,9 @@ export default function LoginPage() {
         </div>
 
         {/* Footer link */}
-        <div className="text-center text-xs text-slate-600">
+        <div className="text-center text-xs text-slate-600 dark:text-slate-400">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-bold">
+          <Link href="/signup" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold">
             Create Account
           </Link>
         </div>

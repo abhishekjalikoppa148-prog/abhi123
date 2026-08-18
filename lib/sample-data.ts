@@ -156,6 +156,73 @@ export const TEMPLATES: TemplateDefinition[] = [
     accent: '#F5C542',
     previewImage: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&auto=format&fit=crop',
     iconName: 'Sparkles'
+  },
+  // New templates from celebrationcraft
+  {
+    id: 'romantic-hearts',
+    name: 'Romantic Hearts & Rose',
+    description: 'Soft pinks, floating hearts, and elegant floral accents perfect for loved ones.',
+    badge: '🌹 Popular',
+    bgGradient: 'from-rose-50 via-pink-50 to-amber-50',
+    cardStyle: 'bg-white/80 border-rose-300 shadow-xl text-rose-900',
+    accent: '#e11d48',
+    previewImage: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=800&q=80',
+    iconName: 'Heart'
+  },
+  {
+    id: 'royal-midnight',
+    name: 'Royal Midnight Gold',
+    description: 'Sophisticated deep navy paired with shimmering gold for milestones and galas.',
+    badge: '👑 Milestone',
+    bgGradient: 'from-slate-900 via-indigo-950 to-blue-900',
+    cardStyle: 'bg-slate-900/40 border-amber-400/30 text-amber-100',
+    accent: '#1e3a8a',
+    previewImage: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=800&q=80',
+    iconName: 'Crown'
+  },
+  {
+    id: 'neon-glow',
+    name: 'Neon Glow Celebration',
+    description: 'Vibrant neon gradients, energetic sparkles, and modern party vibes.',
+    badge: '✨ Trending',
+    bgGradient: 'from-purple-950 via-slate-900 to-cyan-950',
+    cardStyle: 'bg-purple-900/20 border-cyan-500/30 text-cyan-100',
+    accent: '#7c3aed',
+    previewImage: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80',
+    iconName: 'Zap'
+  },
+  {
+    id: 'magical-fairyland',
+    name: 'Magical Fairyland',
+    description: 'Playful confetti, bright cheerful tones, and whimsical animations for kids.',
+    badge: '🧸 Kids Favorite',
+    bgGradient: 'from-amber-50 via-orange-50 to-yellow-50',
+    cardStyle: 'bg-white/80 border-orange-300 shadow-xl text-orange-900',
+    accent: '#f97316',
+    previewImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&q=80',
+    iconName: 'Sparkles'
+  },
+  {
+    id: 'minimalist-mono',
+    name: 'Minimalist Monochrome',
+    description: 'Ultra-clean editorial layouts, spacious typography, and modern aesthetics.',
+    badge: '⚫ Minimal',
+    bgGradient: 'from-neutral-50 via-stone-50 to-zinc-100',
+    cardStyle: 'bg-white/80 border-zinc-300 shadow-xl text-zinc-900',
+    accent: '#18181b',
+    previewImage: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=800&q=80',
+    iconName: 'Feather'
+  },
+  {
+    id: 'golden-jubilee',
+    name: 'Golden Jubilee Sparkle',
+    description: 'Glittering champagne sparkles and rich warm tones for 30th, 40th, 50th birthdays.',
+    badge: '🥂 Luxury',
+    bgGradient: 'from-amber-950 via-stone-900 to-yellow-950',
+    cardStyle: 'bg-amber-900/20 border-yellow-400/30 text-yellow-100',
+    accent: '#d97706',
+    previewImage: 'https://images.unsplash.com/photo-1533227268428-f9ed0900fb3b?auto=format&fit=crop&w=800&q=80',
+    iconName: 'Sparkles'
   }
 ];
 

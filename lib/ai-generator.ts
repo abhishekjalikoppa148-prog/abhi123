@@ -18,10 +18,35 @@ export interface AIGenerateOptions {
   favPlace?: string;
   favFood?: string;
   style: AIStyle;
+  useAI?: boolean; // New option to use AI API instead of templates
 }
 
-export function generateAIBirthdayWish(options: AIGenerateOptions): string {
-  const { personName, personNickname, relationship = 'friend', age, hobbies = [], favPlace, favFood, style } = options;
+export async function generateAIBirthdayWish(options: AIGenerateOptions): Promise<string> {
+  const { personName, personNickname, relationship = 'friend', age, hobbies = [], favPlace, favFood, style, useAI = false } = options;
+  
+  // If AI is requested, call the API
+  if (useAI) {
+    try {
+      const response = await fetch('/api/ai/wish-gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          relationship: relationship || 'Friend',
+          tone: style === 'funny' ? 'Funny' : style === 'emotional' ? 'Emotional' : style === 'romantic' ? 'Romantic' : style === 'inspirational' ? 'Formal' : 'Casual',
+          length: style === 'short' ? 'Short' : style === 'long' ? 'Long' : 'Medium'
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.wish;
+      }
+    } catch (error) {
+      console.warn('AI generation failed, falling back to template:', error);
+    }
+  }
+  
+  // Fallback to template-based generation
   const name = personNickname ? `${personName} (${personNickname})` : personName;
   const ageStr = age ? ` Turning ${age} looks so breathtakingly good on you!` : '';
   const hobbyStr = hobbies.length > 0 ? ` May your year be packed with endless ${hobbies.join(', ')} and adventures.` : '';

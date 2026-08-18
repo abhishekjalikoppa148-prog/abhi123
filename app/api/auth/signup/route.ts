@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createUserAuth, createSession } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 import { validateEmail, validatePassword, checkRateLimit } from '@/lib/auth';
 import { EmailService } from '@/lib/email';
 
@@ -52,12 +52,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create user with Supabase Auth
-    const data = await createUserAuth(email.toLowerCase().trim(), password, name.trim(), 'user');
+    // Create user with Supabase Auth using server client
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.signUp({
+      email: email.toLowerCase().trim(),
+      password,
+      options: {
+        data: {
+          name: name.trim(),
+          role: 'user',
+        },
+      },
+    });
     
-    if (!data.user) {
+    if (error || !data.user) {
+      console.error('[Signup] Sign up error:', error);
       return NextResponse.json(
-        { error: 'Failed to create account' },
+        { error: error?.message || 'Failed to create account' },
         { status: 500 }
       );
     }
@@ -78,7 +89,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Sign in to create session
-    await createSession(email.toLowerCase().trim(), password);
+    const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password,
+    });
+    
+    if (signInError || !sessionData.session) {
+      console.error('[Signup] Session creation failed:', signInError);
+      return NextResponse.json(
+        { error: 'Account created but failed to establish session' },
+        { status: 500 }
+      );
+    }
+
+    console.log('[Signup] Session created successfully for:', email);
 
     // Send welcome email (non-blocking)
     EmailService.sendWelcomeEmail((userProfile as any).email, (userProfile as any).name).catch(() => {});
