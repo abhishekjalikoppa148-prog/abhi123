@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Shield, Users, Globe, IndianRupee, Eye, RefreshCw, 
-  CheckCircle2, AlertCircle, FileText, Search
+  CheckCircle2, AlertCircle, FileText, Search, Music, Image, Palette
 } from 'lucide-react';
 import { BirthdayWebsite, Order } from '@/lib/types';
 
@@ -17,7 +17,7 @@ export default function AdminDashboardPage() {
     totalViews: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'websites' | 'orders' | 'users'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'websites' | 'orders' | 'users' | 'content'>('overview');
   const [websites, setWebsites] = useState<BirthdayWebsite[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -157,7 +157,8 @@ export default function AdminDashboardPage() {
           { id: 'overview', label: 'Overview', icon: Globe },
           { id: 'websites', label: 'Websites', icon: Globe },
           { id: 'orders', label: 'Orders', icon: IndianRupee },
-          { id: 'users', label: 'Users', icon: Users }
+          { id: 'users', label: 'Users', icon: Users },
+          { id: 'content', label: 'Content Library', icon: Palette }
         ].map((tab) => {
           const Icon = tab.icon;
           return (
@@ -349,6 +350,48 @@ export default function AdminDashboardPage() {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {/* TAB 5: CONTENT LIBRARY */}
+      {activeTab === 'content' && (
+        <div className="space-y-6">
+          <div className="flex gap-2 bg-white p-2 rounded-2xl border border-blue-200 shadow-sm">
+            {[
+              { id: 'music', label: 'Music', icon: Music },
+              { id: 'photos', label: 'Photos', icon: Image },
+              { id: 'themes', label: 'Themes', icon: Palette }
+            ].map((subTab) => {
+              const Icon = subTab.icon;
+              return (
+                <button
+                  key={subTab.id}
+                  onClick={() => {}}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all bg-blue-500 text-white shadow-md shadow-blue-500/25"
+                >
+                  <Icon className="w-4 h-4" /> {subTab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="rounded-3xl bg-white border border-blue-200 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Music Library</h3>
+                <p className="text-xs text-slate-600">Manage background music tracks for birthday websites</p>
+              </div>
+              <button className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center gap-2 transition-colors shadow-md shadow-blue-500/25">
+                <Plus className="w-4 h-4" /> Add Music Track
+              </button>
+            </div>
+
+            <div className="text-center py-12 text-slate-500">
+              <Music className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+              <p className="text-sm">Content management UI coming soon</p>
+              <p className="text-xs text-slate-400 mt-1">Use API routes to manage content library</p>
+            </div>
+          </div>
         </div>
       )}
 
