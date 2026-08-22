@@ -68,7 +68,7 @@ export default function BirthdayPublicPage({ params }: { params: Promise<{ id: s
     );
   }
 
-  if (website.templateId === 'pink-gold') {
+  if (website.templateId === 'rose-garden') {
     return (
       <PinkGoldTheme
         personName={website.personName}

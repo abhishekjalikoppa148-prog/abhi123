@@ -58,21 +58,14 @@ export interface MusicTrack {
 }
 
 export type TemplateId = 
-  | 'romantic' 
-  | 'bestfriend' 
-  | 'family' 
-  | 'cute' 
-  | 'elegant' 
-  | 'modern' 
-  | 'minimal' 
-  | 'party'
-  | 'pink-gold'
-  | 'romantic-hearts'
-  | 'royal-midnight'
-  | 'neon-glow'
-  | 'magical-fairyland'
-  | 'minimalist-mono'
-  | 'golden-jubilee';
+  | 'pearl-sunset'
+  | 'royal-blue'
+  | 'rose-garden'
+  | 'midnight-celebration'
+  | 'golden-memories'
+  | 'dreamy-pastel'
+  | 'black-gold'
+  | 'minimal-love';
 
 export interface Customizations {
   accentColor: string;

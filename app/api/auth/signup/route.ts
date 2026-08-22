@@ -73,19 +73,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user profile from our users table (created by trigger)
+    // Create user profile in public.users table (no trigger exists, so we do it manually)
     const { supabaseAdmin } = await import('@/lib/supabase/admin');
-    const { data: userProfile } = await supabaseAdmin
+    
+    // Check if profile already exists (e.g. from a previous partial attempt)
+    const { data: existingProfile } = await supabaseAdmin
       .from('users')
       .select('id, name, email, role, plan')
       .eq('auth_id', data.user.id)
       .single();
 
+    let userProfile = existingProfile;
+
     if (!userProfile) {
-      return NextResponse.json(
-        { error: 'User profile not created' },
-        { status: 500 }
-      );
+      const { data: newProfile, error: profileError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          name: name.trim(),
+          email: email.toLowerCase().trim(),
+          auth_id: data.user.id,
+          role: 'user',
+          plan: 'free',
+          plan_status: 'active',
+        })
+        .select('id, name, email, role, plan')
+        .single();
+
+      if (profileError || !newProfile) {
+        console.error('[Signup] Failed to create user profile:', profileError);
+        return NextResponse.json(
+          { error: 'Failed to create user profile' },
+          { status: 500 }
+        );
+      }
+      userProfile = newProfile;
     }
 
     // Sign in to create session

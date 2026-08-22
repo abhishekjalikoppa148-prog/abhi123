@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Shield, Users, Globe, IndianRupee, Eye, RefreshCw, 
-  CheckCircle2, AlertCircle, FileText, Search, Music, Image, Palette
+  CheckCircle2, AlertCircle, FileText, Search, Music, Image, Palette, Plus
 } from 'lucide-react';
 import { BirthdayWebsite, Order } from '@/lib/types';
 

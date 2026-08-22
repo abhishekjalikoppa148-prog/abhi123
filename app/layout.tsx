@@ -3,6 +3,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ParticleBackground from '@/components/ParticleBackground';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -55,16 +56,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark scroll-smooth">
-      <body className="min-h-screen text-slate-100 flex flex-col selection:bg-rose-500 selection:text-white">
-        <AuthProvider>
-          <ParticleBackground />
-          <Navbar />
-          <main className="flex-1 relative z-10">
-            {children}
-          </main>
-          <Footer />
-        </AuthProvider>
+    <html lang="en" className="scroll-smooth">
+      <body className="min-h-screen flex flex-col selection:bg-rose-500 selection:text-white">
+        <ThemeProvider>
+          <AuthProvider>
+            <ParticleBackground />
+            <Navbar />
+            <main className="flex-1 relative z-10">
+              {children}
+            </main>
+            <Footer />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

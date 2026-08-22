@@ -14,43 +14,43 @@ export const RELATIONSHIP_OPTIONS: RelationshipOption[] = [
     id: 'partner',
     label: 'Partner',
     emoji: '❤️',
-    recommendedTemplates: ['romantic', 'pink-gold', 'elegant']
+    recommendedTemplates: ['rose-garden', 'pearl-sunset', 'black-gold']
   },
   {
     id: 'bestfriend',
     label: 'Best Friend',
     emoji: '🫶',
-    recommendedTemplates: ['bestfriend', 'party', 'modern']
+    recommendedTemplates: ['dreamy-pastel', 'royal-blue', 'minimal-love']
   },
   {
     id: 'family',
     label: 'Family',
     emoji: '👨‍👩‍👧',
-    recommendedTemplates: ['family', 'cute', 'minimal']
+    recommendedTemplates: ['golden-memories', 'dreamy-pastel', 'minimal-love']
   },
   {
     id: 'classmate',
     label: 'Classmate',
     emoji: '🎓',
-    recommendedTemplates: ['bestfriend', 'party', 'modern']
+    recommendedTemplates: ['dreamy-pastel', 'royal-blue', 'minimal-love']
   },
   {
     id: 'colleague',
     label: 'Colleague',
     emoji: '💼',
-    recommendedTemplates: ['elegant', 'minimal', 'modern']
+    recommendedTemplates: ['black-gold', 'minimal-love', 'royal-blue']
   },
   {
     id: 'other',
     label: 'Other',
     emoji: '🎂',
-    recommendedTemplates: ['party', 'cute', 'bestfriend']
+    recommendedTemplates: ['royal-blue', 'dreamy-pastel', 'minimal-love']
   }
 ];
 
 export function getRecommendedTemplates(relationship: RelationshipType): TemplateId[] {
   const option = RELATIONSHIP_OPTIONS.find(opt => opt.id === relationship);
-  return option?.recommendedTemplates || ['bestfriend', 'romantic', 'family'];
+  return option?.recommendedTemplates || ['minimal-love', 'rose-garden', 'golden-memories'];
 }
 
 export function getRelationshipLabel(relationship: RelationshipType): string {
